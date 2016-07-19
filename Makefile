@@ -1,7 +1,7 @@
 CXXFLAGS += -std=c++11 -g -Wall -Wextra
 GSL_LDFLAGS =
 
-include features.mk
+-include features.mk
 
 MAKEFILES = \
     Makefile \
@@ -34,6 +34,10 @@ all: ts.mk.hpp dep $(BINARIES)
 
 # depend on Makefiles
 ts.mk.hpp: $(MAKEFILES)
+	@touch $@
+
+# create features.mk if absent
+features.mk:
 	@touch $@
 
 # automagic dependencies

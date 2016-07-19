@@ -19,7 +19,6 @@ Building
 
 In order to build the program, type the following:
 
-touch features.mk
 make
 
 
