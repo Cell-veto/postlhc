@@ -1,0 +1,8 @@
+.depend
+features.mk
+.gdb_history
+postlhc
+*.o
+.*.swo
+.*.swp
+ts.mk.hpp

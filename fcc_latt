@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+# write coordinates for a triangular lattice configuration.
+import numpy as np
+import os
+import sys
+from math import pi as M_PI
+from math import sqrt
+SQRT_2 = sqrt (2)
+FOUR_PI_THREE = 4 * M_PI / 3
+
+N = 1000
+rho = M_PI/3/SQRT_2  / FOUR_PI_THREE
+noise = 1.
+
+argc = len (sys.argv)
+i = 1
+while i < argc:
+    if sys.argv[i] == 'rho':
+        rho = float (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'dee':
+        dee = float (sys.argv[i+1])
+        i += 2
+        rho = 1. / FOUR_PI_THREE / dee**3
+        del dee
+    elif sys.argv[i] == 'noise':
+        noise = float (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'N':
+        N = int (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'seed':
+        seed = int (sys.argv[i+1])
+        np.random.seed (seed)
+        i += 2
+    elif sys.argv[i] == '-C':
+        os.chdir (sys.argv[i+1])
+        i += 2
+    else:
+        abort ("Nope")
+
+def fcc_lattice (N, rho):
+    """
+    construct a perfect fcc lattice with approximately
+    N particles, and precise number density rho.
+    returns (coordinates, slack, box vectors)
+    """
+    imax = int ((N/4.)**(1./3))
+    N = 4 * imax**3
+    V = N / rho
+    ilat = V**(1./3) / imax
+    L = [imax*ilat] * 3
+    R = 1.
+    slack = .25*SQRT_2*ilat - R
+    eta_unit_spheres = FOUR_PI_THREE * rho
+    print "actual parameters:", locals ()
+
+    X = np.arange (imax*2)
+    XX, YY, ZZ = np.meshgrid (X, X, X)
+    XX = XX.flatten ()
+    YY = YY.flatten ()
+    ZZ = ZZ.flatten ()
+
+    # select odd lattice sites
+    s = (XX+YY+ZZ) % 2 == 0
+
+    coords = np.transpose ([XX[s], YY[s], ZZ[s]]) * (.5*ilat)
+
+    return coords, slack, L
+
+def random_unitball (size=1):
+    u = np.random.uniform
+    while True:
+        xyz = np.random.uniform (-1, 1, size=3)
+        if np.linalg.norm (xyz) < 1:
+            return xyz
+
+coords, slack, L = fcc_lattice (N, rho)
+N = len (coords)
+L = np.array (L)
+
+coords += noise * slack * random_unitball (size=N)
+del slack
+
+# canonicalize coordinates into [0; L)
+coords += L
+coords %= L
+
+mini = np.min (coords, axis=0)
+maxi = np.max (coords, axis=0)
+assert np.all (mini >= 0.)
+assert np.all (maxi < L)
+
+np.savetxt ("coords.dat", coords)
+np.savetxt ("periods", L)

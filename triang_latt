@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+# write coordinates for a triangular lattice configuration.
+import numpy as np
+import os
+import sys
+from math import pi as M_PI
+from math import sqrt
+sqrt3 = sqrt (3)
+
+N = 1000
+rho = (M_PI/2/sqrt3) / M_PI
+noise = 1.
+
+argc = len (sys.argv)
+i = 1
+while i < argc:
+    if sys.argv[i] == 'eta':
+        rho = float (sys.argv[i+1]) / M_PI
+        i += 2
+    elif sys.argv[i] == 'rho':
+        rho = float (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'dee':
+        dee = float (sys.argv[i+1])
+        i += 2
+        rho = 1. / M_PI / dee / dee
+        del dee
+    elif sys.argv[i] == 'noise':
+        noise = float (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'N':
+        N = int (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'seed':
+        seed = int (sys.argv[i+1])
+        np.random.seed (seed)
+        i += 2
+    elif sys.argv[i] == '-C':
+        os.chdir (sys.argv[i+1])
+        i += 2
+    else:
+        abort ("Nope")
+
+# triangular lattice generator
+
+def triangular_lattice (N, rho):
+    """
+    construct a perfect triangular lattice with approximately
+    N particles, and precise number density rho.
+    returns (coordinates, slack, box vectors)
+    """
+    ncells = N // (28*2)
+    imax = 7 * int (sqrt (ncells) + 1)
+    jmax = 4 * int (sqrt (ncells) + 1)
+    del ncells
+    N = 2 * imax * jmax
+    A = N / rho
+    ilat = sqrt (A / imax / jmax / sqrt3)
+    jlat = sqrt3 * ilat
+    L = imax*ilat, jmax*jlat
+    slack = ((ilat - 2.) / 2., (jlat - 2*sqrt(3)) / 4.)
+    eta_unit_disks = M_PI * rho  # assume unit disks
+    dee = (M_PI*rho)**-.5
+    print "actual parameters:", locals ()
+
+    X = np.arange (imax) * ilat
+    Y = np.arange (jmax) * jlat
+    XX, YY = np.meshgrid (X, Y)
+    XX = XX.flatten ()
+    YY = YY.flatten ()
+
+    orig = np.transpose ([XX, YY])
+    cent = orig + [ilat/2., jlat/2.]
+    coords = np.concatenate ([orig, cent])
+
+    return coords, min (*slack), L
+
+def random_unitdisk (size=1):
+    u = np.random.uniform
+    r = u (0, 1, size=size) + u (0, 1, size=size)
+    r = np.minimum (r, 2-r)
+    ph = u (0, 2*M_PI, size)
+    return np.transpose ([ r * np.cos (ph), r * np.sin (ph) ])
+
+coords, slack, L = triangular_lattice (N, rho)
+N = len (coords)
+L = np.array (L)
+
+coords += noise * slack * random_unitdisk (size=N)
+del slack
+
+# canonicalize coordinates into [0; L)
+coords += L
+coords %= L
+
+mini = np.min (coords, axis=0)
+maxi = np.max (coords, axis=0)
+assert np.all (mini >= 0.)
+assert np.all (maxi < L)
+
+np.savetxt ("coords.dat", coords)
+np.savetxt ("periods", (L[0], L[1], 0.))

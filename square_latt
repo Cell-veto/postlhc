@@ -1,0 +1,93 @@
+#!/usr/bin/env python
+# write coordinates for a square lattice configuration.
+import numpy as np
+import os
+import sys
+from math import pi as M_PI
+from math import sqrt
+
+N = 100
+rho = .25
+noise = 1.
+
+argc = len (sys.argv)
+i = 1
+while i < argc:
+    if sys.argv[i] == 'eta':
+        rho = float (sys.argv[i+1]) / M_PI
+        i += 2
+    elif sys.argv[i] == 'rho':
+        rho = float (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'dee':
+        dee = float (sys.argv[i+1])
+        i += 2
+        rho = 1. / M_PI / dee / dee
+        del dee
+    elif sys.argv[i] == 'noise':
+        noise = float (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'N':
+        N = int (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'seed':
+        seed = int (sys.argv[i+1])
+        np.random.seed (seed)
+        i += 2
+    elif sys.argv[i] == '-C':
+        os.chdir (sys.argv[i+1])
+        i += 2
+    else:
+        abort ("Nope")
+
+def square_lattice (ncells, rho):
+    """
+    construct a perfect square lattice with approximately
+    N particles, and precise number density rho.
+    returns (coordinates, slack, box vectors)
+    """
+    imax = jmax = int (sqrt (ncells) + 1)
+    del ncells
+    N = imax * jmax
+    A = N / rho
+    ilat = jlat = sqrt (A / imax / jmax)
+    L = imax*ilat, jmax*jlat
+    slack = ilat - 2.
+    eta_unit_disks = M_PI * rho  # assume unit disks
+    dee = (M_PI*rho)**-.5
+    print "actual parameters:", locals ()
+
+    X = Y = np.arange (imax) * ilat
+    XX, YY = np.meshgrid (X, Y)
+    XX = XX.flatten ()
+    YY = YY.flatten ()
+
+    coords = np.transpose ([XX, YY])
+
+    return coords, slack, L
+
+def random_unitdisk (size=1):
+    u = np.random.uniform
+    r = u (0, 1, size=size) + u (0, 1, size=size)
+    r = np.minimum (r, 2-r)
+    ph = u (0, 2*M_PI, size)
+    return np.transpose ([ r * np.cos (ph), r * np.sin (ph) ])
+
+coords, slack, L = square_lattice (N, rho)
+N = len (coords)
+L = np.array (L)
+
+coords += noise * slack * random_unitdisk (size=N)
+del slack
+
+# canonicalize coordinates into [0; L)
+coords += L
+coords %= L
+
+mini = np.min (coords, axis=0)
+maxi = np.max (coords, axis=0)
+assert np.all (mini >= 0.)
+assert np.all (maxi < L)
+
+np.savetxt ("coords.dat", coords)
+np.savetxt ("periods", (L[0], L[1], 0.))
