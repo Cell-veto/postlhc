@@ -187,7 +187,10 @@ int main (int, const char **argv)
     }
 
     if (!skip_calib)
+    {
         cr->calibrate (stor);
+        //cr->optimize_parameter (stor, "sr_lr_split", 2., 5.);
+    }
 
     // warm-up
     cr->collide (stor, 10.);

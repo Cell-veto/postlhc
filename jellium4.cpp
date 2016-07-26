@@ -113,7 +113,12 @@ struct Jellium4 : JelliumInteraction
         : periods (MAX_DIM, NAN)
     {
         set_parameter ("exponent", 1.);
+    }
+
+    void set_parameter (string_ref name, double value)
+    {
         error_bound = 0.;
+        JelliumInteraction::set_parameter (name, value);
     }
 
     double lr_event_rate (const vector_t &r, unsigned direction, bool clip = true)

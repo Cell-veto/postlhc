@@ -29,7 +29,12 @@ struct Jellium3 : JelliumInteraction
         : period (MAX_DIM, NAN)
     {
         set_parameter ("exponent", 1.);
+    }
+
+    void set_parameter (string_ref name, double value)
+    {
         error_bound = 0.;
+        JelliumInteraction::set_parameter (name, value);
     }
 
     template <size_t DIM>

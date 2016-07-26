@@ -157,6 +157,52 @@ struct ChainRunner : public AbstractChainRunner
     }
 
     virtual
+    void optimize_parameter (AbstractStorage * stor_, string_ref name, double low, double high)
+    {
+        stor_t *stor = downcast (stor_);
+        unsigned num_guesses = 100;
+        unsigned num_events = 10000;
+        double opt = low;
+        double opt_time = 1e99;
+        for (unsigned i = 0; i != num_guesses; ++i)
+        {
+            double guess = low + i * (high-low) / num_guesses;
+            inter.set_parameter (name, guess);
+
+            inter.notify_random_context (&random);
+            inter.notify_error_bound (stor, stor->cell_diagonal (), DIM);
+
+            uint64_t t_begin = gclock ();
+
+            direction = 0;
+            disp_left = stor->periods () [0];
+
+            for (unsigned n = 0; n != num_events; ++n)
+            {
+                planned_next = active = stor->random_particle (&random);
+                planned_disp = disp_left;
+                planned_xdisp = 0.;
+
+                find_sr_events (stor);
+                find_lr_events (stor);
+            }
+
+            uint64_t guess_time = gclock () - t_begin;
+            std::cerr << "calib_stat optimize " << name << " " << guess << " "
+                << fdivide (num_events, guess_time) << "\n";
+            if (opt_time > guess_time)
+            {
+                opt = guess;
+                opt_time = guess_time;
+            }
+        }
+
+        std::cerr << "calib_stat opt_fin " << name << " "
+            << opt << " " << fdivide (num_events, opt_time) << "\n";
+        inter.set_parameter (name, opt);
+    }
+
+    virtual
     void do_collide (AbstractStorage *stor_, double disp_per_particle)
     {
         stor_t *stor = downcast (stor_);
