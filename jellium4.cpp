@@ -91,7 +91,7 @@ struct GridIndices
         index_tuple_t pos_;
         const index_tuple_t low_, high_;
 
-        friend class GridIndices;
+        friend struct GridIndices;
     };
 
 private:
