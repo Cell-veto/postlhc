@@ -147,6 +147,8 @@ def pair_correlator (coords, periods, data, discret = .2):
     da = np.zeros (numcell, dtype=FFT_DATATYPE)
     idx0 = np.floor (coords[:,0] / lencell[0]).astype (np.int)
     idx1 = np.floor (coords[:,1] / lencell[1]).astype (np.int)
+    assert np.all (idx0 >= 0)
+    assert np.all (idx1 >= 0)
     da[idx0,idx1] += data
     # FFT convolution
     fda = np.fft.fft2 (da)
