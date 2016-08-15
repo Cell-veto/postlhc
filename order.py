@@ -77,7 +77,7 @@ def normals_and_weights (diagr, relev = None):
         avg = np.mean (pnt)
         pnt = pnt[np.argsort (np.angle (pnt-avg))]
         edge = pnt - np.roll (pnt, 1)
-        w = np.abs (edge)
+        w = np.abs (edge) + 1e-99
         n = edge / w * rot90
         w /= np.sum (w)
         yield (n, w)
