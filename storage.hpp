@@ -111,7 +111,7 @@ struct Storage : ENCODING, AbstractStorage
 public:
     typedef uint64_t key_t;
     typedef ENCODING encoding_t;
-    using typename ENCODING::Payload;
+    typedef typename ENCODING::Payload Payload;
     static const unsigned DIM = ENCODING::DIM;
     typedef vector <DIM> vector_t;
 
