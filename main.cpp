@@ -31,7 +31,6 @@ int main (int, const char **argv)
     unsigned long snap_target = 100000;
 
     // parse command line, initializing our tools along the way
-    // FIXME implement recover
     for (++argv; *argv; argv += 2)
     {
         string kw = *argv;
