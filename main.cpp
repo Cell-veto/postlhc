@@ -177,7 +177,8 @@ int main (int, const char **argv)
     std::cerr << "inter " << inter << '\n';
     cr->seed_random (random_seed);
 
-    hack_reduce_cellwidth (stor, 3.);
+    // hack to measure reliable probe rates
+    //hack_reduce_cellwidth (stor, 3.);
 
     if (probe_test)
     {
