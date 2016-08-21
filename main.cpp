@@ -96,7 +96,11 @@ int main (int, const char **argv)
                 inter = read_arg <string> (argv);
                 cr = make_chainrunner (inter, stor);
                 prefix += inter + '/';
-                cr->set_parameter ("sr_lr_split", 3.5);
+                try {
+                    cr->set_parameter ("sr_lr_split", 3.5);
+                } catch (std::runtime_error) {
+                    // ignore if unsupported
+                }
             }
             else
                 rt_error ("First set interaction type with keyword inter");
