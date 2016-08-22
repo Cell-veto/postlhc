@@ -1,0 +1,75 @@
+#!/usr/bin/env python
+# write coordinates for a random configuration.
+import numpy as np
+import os
+import sys
+from math import pi as M_PI
+from math import sqrt
+
+N = 100
+rho = .25
+
+argc = len (sys.argv)
+i = 1
+while i < argc:
+    if sys.argv[i] == 'eta':
+        rho = float (sys.argv[i+1]) / M_PI
+        i += 2
+    elif sys.argv[i] == 'rho':
+        rho = float (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'dee':
+        dee = float (sys.argv[i+1])
+        i += 2
+        rho = 1. / M_PI / dee / dee
+        del dee
+    elif sys.argv[i] == 'N':
+        N = int (sys.argv[i+1])
+        i += 2
+    elif sys.argv[i] == 'seed':
+        seed = int (sys.argv[i+1])
+        np.random.seed (seed)
+        i += 2
+    elif sys.argv[i] == '-C':
+        os.chdir (sys.argv[i+1])
+        i += 2
+    else:
+        abort ("Nope")
+
+def square_lattice (ncells, rho):
+    """
+    construct a perfect square lattice with approximately
+    N particles, and precise number density rho.
+    returns (coordinates, slack, box vectors)
+    """
+    N = ncells
+    A = N / rho
+    L = np.sqrt (A)
+    L = [ L, L ]
+    slack = 0
+    eta_unit_disks = M_PI * rho  # assume unit disks
+    dee = (M_PI*rho)**-.5
+    print "actual parameters:", locals ()
+
+    XX = np.random.random (size=N) * L[0]
+    YY = np.random.random (size=N) * L[1]
+
+    coords = np.transpose ([XX, YY])
+
+    return coords, slack, L
+
+coords, slack, L = square_lattice (N, rho)
+N = len (coords)
+L = np.array (L)
+
+# canonicalize coordinates into [0; L)
+coords += L
+coords %= L
+
+mini = np.min (coords, axis=0)
+maxi = np.max (coords, axis=0)
+assert np.all (mini >= 0.)
+assert np.all (maxi < L)
+
+np.savetxt ("coords.dat", coords)
+np.savetxt ("periods", (L[0], L[1], 0.))
