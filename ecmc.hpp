@@ -6,7 +6,7 @@
 
 // each interaction is encoded by a class derived from Interaction.
 // you need to override at least the methods sr_repulsion_range
-// and random_repulsive_lift.
+// and random_sr_repulsion.
 struct Interaction
 {
     // REPULSIVE SHORT-RANGE INTERACTIONS
@@ -18,9 +18,10 @@ struct Interaction
     }
 
     // compute next event distance
-    double random_repulsive_lift (double rsq_now, RandomContext *)
+    // specifically compute the change in rsq (distance-squared)
+    // which is negative for repulsive potentials.
+    double random_sr_repulsion (double /* rsq_now */, RandomContext *)
     {
-        (void)rsq_now;
         std::cerr << "random_sr_repulsion dummy called" << ABORT;
     }
 
@@ -33,9 +34,10 @@ struct Interaction
     }
 
     // compute next event distance
-    double random_attractive_lift (double rsq_now, RandomContext *)
+    // specifically compute the change in rsq (distance-squared)
+    // which is positive for repulsive potentials.
+    double random_sr_attraction (double /* rsq_now */, RandomContext *)
     {
-        (void)rsq_now;
         std::cerr << "random_sr_attraction dummy called" << ABORT;
     }
 
@@ -210,6 +212,21 @@ struct ChainRunner : public AbstractChainRunner
         this->run (stor, num_chains, calib_constant);
     }
 
+    // norm-squared, skipping the component 'skip'
+    template <size_t DIM>
+    static
+    double norm_ortho_sq (const vector <DIM> &v, size_t skip)
+    {
+        assert (skip < DIM);
+        double ret = 0.;
+        for (size_t i = 0; i != DIM; ++i)
+        {
+            if (i != skip)
+                ret += v[i]*v[i];
+        }
+        return ret;
+    }
+
     // after the planned_* fields have been initialized to a nil event,
     // advancing the active particle by planned_disp without any collisions,
     // factor in the short-range (including hard-core) events. updates planned_*.
@@ -231,24 +248,23 @@ struct ChainRunner : public AbstractChainRunner
         for (; g.not_done (); g.next ())
         {
             vector_t r_now = stor->distance_vector (g.key (), active);
-            double rsq_now = norm_sq (r_now);
             double x_now = r_now[direction];
-            double ortho_rsq = rsq_now - sq (x_now);
+            double xsq = sq (x_now);
+            double ortho_rsq = norm_ortho_sq (r_now, direction);
 
-            double xdisp, rsq_event;
+            double disp;
 
             // repulsive interactions
             if (x_now > 0. && ortho_rsq < sq (repuls_range))
             {
-                rsq_event = inter.random_repulsive_lift (rsq_now, &random);
-                assert (rsq_event <= rsq_now);
+                double rsq = ortho_rsq + xsq;
+                double delta = inter.random_sr_repulsion (rsq, &random);
+                assert (delta <= 0.);
+                // delta <= -rsq signals 'no event' (will not enter the next if clause)
 
-                // FIXME fix up for really stiff interactions
-                double xsq_event = rsq_event - ortho_rsq;
-
-                if (xsq_event > 0.)
+                if (xsq + delta > 0.)
                 {
-                    xdisp = sqrt (xsq_event);
+                    disp = -delta / (sqrt (xsq + delta) + x_now);
                     goto have_event;
                 }
             }
@@ -258,42 +274,41 @@ struct ChainRunner : public AbstractChainRunner
             {
                 // note that even if the other particle is ahead _now_, we might
                 // schedule an event after passing it.
-                double rsq_valley = (x_now > 0.) ? ortho_rsq : rsq_now;
-                rsq_event = inter.random_attractive_lift (rsq_valley, &random);
-                assert (rsq_event < 0 || rsq_event >= rsq_valley);
+                double x_virt = (x_now > 0.) ? 0. : x_now;
+                double xsq_virt = sq (x_virt);
+                double rsq_virt = ortho_rsq + xsq_virt;
+                double delta = inter.random_sr_attraction (rsq_virt, &random);
+                // delta == -rsq_virt signals 'no event' (will not enter the next if clause)
+                assert (delta == -rsq_virt ||  delta >= 0.);
 
-                // FIXME fix up for really stiff interactions
-                double xsq_event = rsq_event - ortho_rsq;
-
-                if (xsq_event > 0.)
+                if (xsq_virt + delta > 0.)
                 {
-                    xdisp = -sqrt (xsq_event);
+                    disp = (x_now-x_virt) + delta / (sqrt (xsq_virt + delta) - x_virt);
                     goto have_event;
                 }
             }
 
+            // no event, try next particle
             continue;
 
         have_event:
+            // when jumping here, disp will have been initialized.
             // enter new event into bookkeeping
             ++shortrange_predicts;
 
-            // particle should move forward
-            double disp = x_now - xdisp;
-            if (disp < 0.)
+            if (! (disp >= 0.))
             {
-                assert (disp > -1e-12);
-                disp = 0.;
+                std::cerr << "computed event is not in the future" << ABORT;
             }
 
             // see if this event preempts the previous one
             if (disp < planned_disp)
             {
                 planned_disp = disp;
-                planned_xdisp = xdisp;
+                planned_xdisp = x_now - disp;
                 planned_next = g.key ();
 #ifdef XDISP_HISTO
-                planned_rsq_event = rsq_event;
+                planned_rsq_event = sq (planned_xdisp) + ortho_rsq;
 #endif
                 g.clip (active, disp + strip_width);
             }

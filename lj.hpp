@@ -85,10 +85,9 @@ struct LennardJones : public Interaction
         return e;
     }
 
-    double random_repulsive_lift (double rsq, RandomContext *random)
+    double random_sr_repulsion (double rsq_, RandomContext *random)
     {
-        rsq /= sq (scale);
-        rsq = fmin (rsq, sq (rep_cutoff));
+        double rsq = fmin (rsq_ / sq (scale), sq (rep_cutoff));
 
         // add thermal energy increase on current interaction energy
         double e_now = evaluate_lj (rsq);
@@ -96,18 +95,17 @@ struct LennardJones : public Interaction
         double e_evt = e_now + e_star;
 
         // invert the LJ potential, picking the solution in repulsive region
+        // FIXME look at corner cases
         double rsix = .5 + sqrt (.25 + e_evt);
         double rsq_evt = pow (rsix, -1./3);
         assert (rsq_evt <= sq (rep_cutoff));
 
-        rsq_evt *= sq (scale);
-        return rsq_evt;
+        return rsq_evt * sq (scale) - rsq_;
     }
 
-    double random_attractive_lift (double rsq, RandomContext *random)
+    double random_sr_attraction (double rsq_, RandomContext *random)
     {
-        rsq /= sq (scale);
-        rsq = fmax (rsq, sq (LJ_MINIMUM));
+        double rsq = fmax (rsq_ / sq (scale), sq (LJ_MINIMUM));
 
         // add thermal energy increase on current interaction energy
         double e_now = evaluate_lj (rsq);
@@ -115,14 +113,14 @@ struct LennardJones : public Interaction
         double e_evt = e_now + e_star;
 
         // invert the LJ potential, picking the solution in attractive region
+        // FIXME look at corner cases
         double rsix = .5 - sqrt (.25 + e_evt);
         if (rsix <= rsix_attr_min)
-            return -1.;  // escapes to infinity (no event)
+            return -rsq_;  // escapes to infinity (no event)
         double rsq_evt = pow (rsix, -1./3);
         assert (rsq_evt <= sq (attr_cutoff) && rsq_evt >= sq (LJ_MINIMUM));
 
-        rsq_evt *= sq (scale);
-        return rsq_evt;
+        return rsq_evt * sq (scale) - rsq_;
     }
 
     ParetoProber prober;

@@ -32,10 +32,10 @@ struct HardInteraction : Interaction
         }
     }
 
-    double random_repulsive_lift (double, RandomContext *)
+    double random_sr_repulsion (double rsq, RandomContext *)
     {
         // hard disks/spheres always collide at distance 'diameter'
-        return sq (diameter);
+        return sq (diameter) - rsq;
     }
 };
 
