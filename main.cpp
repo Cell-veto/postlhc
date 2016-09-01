@@ -27,6 +27,7 @@ int main (int, const char **argv)
     bool recover = false;
     bool redirect_log = false;
     bool write_gofr = false;
+    double max_cell_width = -1.;
     unsigned long random_seed = 42;
     unsigned long snap_target = 100000;
 
@@ -43,6 +44,10 @@ int main (int, const char **argv)
         else if (kw == "addprefix")
         {
             prefix += boost::str (format ("%s/") % read_arg <string> (argv));
+        }
+        else if (kw == "setprefix")
+        {
+            prefix = read_arg <string> (argv);
         }
         else if (kw == "log")
         {
@@ -66,6 +71,10 @@ int main (int, const char **argv)
         {
             skip_calib = true;
             --argv; // no argument
+        }
+        else if (kw == "hack_limit_cellwidth")
+        {
+            max_cell_width = read_arg <double> (argv);
         }
         else if (kw == "probe_test")
         {
@@ -182,7 +191,8 @@ int main (int, const char **argv)
     cr->seed_random (random_seed);
 
     // hack to measure reliable probe rates
-    //hack_reduce_cellwidth (stor, 3.);
+    if (max_cell_width > 0.)
+        hack_reduce_cellwidth (stor, max_cell_width);
 
     if (probe_test)
     {
