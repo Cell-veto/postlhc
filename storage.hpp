@@ -107,6 +107,9 @@ struct StorageFull {};
 
 struct CellStorage : AbstractStorage
 {
+    // return number of cells along direction n.
+    // if n==DIM, report storage capacity of cells.
+    virtual size_t cell_count (unsigned n) = 0;
     virtual void reduce_cell_width (double max_cell_width) = 0;
 };
 
@@ -134,6 +137,13 @@ public:
             subdivide ();
     }
 
+    virtual
+    size_t cell_count (unsigned n) const
+    {
+        assert (n <= DIM);
+        return 1ull << bc_[n];
+    }
+
 private:
     // MEMORY MANAGEMENT -- messy internals
     // rely on Linux' late allocation strategy
@@ -147,18 +157,10 @@ private:
     Periods peri_;
     double real2frac[DIM], frac2real[DIM];
 
-public:
-    size_t cell_count (unsigned n) const
-    {
-        assert (n <= DIM);
-        return 1ull << bc_[n];
-    }
-
-private:
     double cell_width (unsigned n) const
     {
         assert (n < DIM);
-        return period (n) / (1ull<<bc_[n]);
+        return period (n) / cell_count (n);
     }
 
     uint64_t cell_stride (unsigned n) const
@@ -238,9 +240,9 @@ private:
         nextsub_ %= DIM;
 
         // compute new number of cells
-        num_cells_ = 1ull << bc_[DIM];
+        num_cells_ = cell_count (DIM);
         for (unsigned n = 0; n != DIM; ++n)
-            num_cells_ *= 1ull << bc_[n];
+            num_cells_ *= cell_count (n);
         if (num_cells_ >= MAX_KEY)
             rt_error ("excessive subdivision - particles seem to be clustering");
 
@@ -542,7 +544,7 @@ public:
             (*r)[n] -= kv[n] << bc_[n] >> bc_[n];
         }
         *k = make_base_key (kv);
-        *k += rng->uint (1ull << bc_[DIM]);
+        *k += rng->uint (cell_count (DIM));
         // correct r for actual position of particle
         // (if there is no particle at *k, the result is bollocks,
         // but it won't be used.)
