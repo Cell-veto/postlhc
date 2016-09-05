@@ -109,7 +109,7 @@ struct CellStorage : AbstractStorage
 {
     // return number of cells along direction n.
     // if n==DIM, report storage capacity of cells.
-    virtual size_t cell_count (unsigned n) = 0;
+    virtual size_t cell_count (unsigned n) const = 0;
     virtual void reduce_cell_width (double max_cell_width) = 0;
 };
 
