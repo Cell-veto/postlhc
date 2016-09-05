@@ -105,8 +105,13 @@ struct Monodisperse3D : Monodisperse2D
 // exception: no more free cells, need to subdivide
 struct StorageFull {};
 
+struct CellStorage : AbstractStorage
+{
+    virtual void reduce_cell_width (double max_cell_width) = 0;
+};
+
 template <typename ENCODING>
-struct Storage : ENCODING, AbstractStorage
+struct Storage : ENCODING, CellStorage
 {
 public:
     typedef uint64_t key_t;
@@ -122,6 +127,7 @@ public:
         void clear () { coord[1] = 0; }
     };
 
+    virtual
     void reduce_cell_width (double target)
     {
         while (cell_width (0) > target || cell_width (1) > target)

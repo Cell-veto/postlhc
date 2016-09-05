@@ -6,8 +6,6 @@
 
 using boost::format;
 
-void hack_reduce_cellwidth (AbstractStorage *stor_, double target);
-
 static
 string format_out (string_ref prefix, unsigned snap, string_ref type = "coords")
 {
@@ -192,7 +190,10 @@ int main (int, const char **argv)
 
     // hack to measure reliable probe rates
     if (max_cell_width > 0.)
-        hack_reduce_cellwidth (stor, max_cell_width);
+    {
+        auto cell_stor = dynamic_cast <CellStorage *> (stor);
+        cell_stor->reduce_cell_width (max_cell_width);
+    }
 
     if (probe_test)
     {
