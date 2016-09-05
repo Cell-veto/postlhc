@@ -32,7 +32,9 @@ bool file_is_readable (string_ref path);
 
 // throw a std::runtime_error
 void rt_error (string_ref msg) __attribute__((noreturn));
-std::ostream &ABORT (std::ostream &) __attribute__((noreturn));
+
+struct AbortObject {} const ABORT;
+std::ostream &operator<< (std::ostream &, const AbortObject &) __attribute__((noreturn));
 
 // redirect std::cout to a file
 void redirect_cout (string_ref filename, bool append);

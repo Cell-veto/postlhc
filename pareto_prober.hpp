@@ -47,7 +47,9 @@ public:
             longrange_pr[2] = sq (error_bound);
         }
         else
-            std::abort ();
+        {
+            std::cerr << "DIM > 3 not implemented in pareto prober" << ABORT;
+        }
 
         total_pr = 0.;
         static bool once = true;

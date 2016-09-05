@@ -55,7 +55,7 @@ void rt_error (string_ref msg)
     throw std::runtime_error (msg);
 }
 
-std::ostream &ABORT (std::ostream &os)
+std::ostream &operator<< (std::ostream &os, const AbortObject &)
 {
     os << std::endl;
     std::abort ();

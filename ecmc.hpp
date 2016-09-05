@@ -21,7 +21,7 @@ struct Interaction
     double random_repulsive_lift (double rsq_now, RandomContext *)
     {
         (void)rsq_now;
-        std::abort ();
+        std::cerr << "random_sr_repulsion dummy called" << ABORT;
     }
 
     // ATTRACTIVE SHORT-RANGE INTERACTIONS
@@ -36,7 +36,7 @@ struct Interaction
     double random_attractive_lift (double rsq_now, RandomContext *)
     {
         (void)rsq_now;
-        std::abort ();
+        std::cerr << "random_sr_attraction dummy called" << ABORT;
     }
 
     // LONG-RANGE INTERACTIONS
@@ -53,7 +53,7 @@ struct Interaction
     {
         (void)r;
         (void)direction;
-        std::abort ();
+        std::cerr << "random_probe dummy called" << ABORT;
     }
 
     template <typename VECTOR>

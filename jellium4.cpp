@@ -243,7 +243,7 @@ struct Jellium4 : JelliumInteraction
         (void)r;
         (void)direction;
         // not implemented
-        std::abort ();
+        std::cerr << "jellium4 probe_rate called" << ABORT;
     }
 
     template <typename VECTOR>
