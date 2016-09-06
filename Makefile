@@ -1,7 +1,10 @@
 CXXFLAGS += -std=c++11 -g -Wall -Wextra
+EXTRA_CXXFLAGS += -DNDEBUG -O3
 GSL_LDFLAGS =
 
 -include features.mk
+
+CXXFLAGS += $(EXTRA_CXXFLAGS)
 
 MAKEFILES = \
     Makefile \
