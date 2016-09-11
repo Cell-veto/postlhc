@@ -1,0 +1,113 @@
+#!/bin/bash
+
+postlhc=../postlhc
+nop=false
+if [ "x$1" = "x-n" ]; then
+    nop=true
+fi
+
+basic_args=( skip_calib gofr log )
+declare -A test_tags
+
+write_comp () {
+    if [ -r ref/${tag}_gofr*.dat ]; then
+        paste out/$tag/seed42_gofr$(( snap - 1 )).dat ref/${tag}_gofr*.dat \
+            | awk 'NF==4 { print $1, $2-$4 }' \
+            > cmp/$tag
+    else
+        echo "no reference data for test $tag"
+        return 1
+    fi
+}
+
+quote() {
+    echo -n "\"$1\""
+}
+
+dollar() {
+    echo -n "\$$1"
+}
+
+write_comp_plot () {
+    echo "set st da l"
+    echo "p \\"
+    for tag in ${test_tags[@]}; do
+    echo "      $(quote cmp/$tag) u 1:($(dollar 2)+$(( i++ ))) t $(quote $tag), \\"
+    done
+    echo "      0./0 not"
+}
+
+run_snaps () {
+    snap=$1
+    tag=$2
+    shift; shift
+    test_tags[$tag]=$tag
+    if $nop; then
+        echo $postlhc $@ ${basic_args[@]} snap "$snap" setprefix "out/$tag/"
+    else
+        ( if $postlhc $@ ${basic_args[@]} snap "$snap" setprefix "out/$tag/"; then
+            touch "out/$tag/CLEAN_EXIT"
+            write_comp
+        else
+            echo "test $tag failed" >&2
+        fi ) &
+    fi
+}
+
+run () {
+    run_snaps 10 $@
+}
+
+dontrun () {
+    :
+}
+
+if ! $nop; then
+    rm -rf out/ cmp/
+    mkdir cmp
+fi
+
+# inverse power law (truncated)
+run 'ss-1024' \
+    stor mono2d load 'data/ss-1024/' \
+    inter truncipl exponent 12 strength 1. cutoff 1.8
+
+# Lennard-Jones potential (truncated)
+run_snaps 7 'lj-test' \
+    stor mono2d load 'data/lj-test/' \
+    inter lj strength 1. cutoff 1.8
+
+# now with long-range
+# set sr_lr_split into the first peak so we can spot any bugs
+run_snaps 7 'lj-exact' \
+    stor mono2d load 'data/lj-test/' \
+    inter lj strength 1. cutoff inf sr_lr_split 2.
+
+# verify the (full LR) potential with both jellium implementations against exact result
+run 'jancovici-j3' \
+    stor mono2d load 'data/hex-224/' \
+    inter jellium3 exponent 0 strength 2. sr_lr_split 1.5
+run 'jancovici-j4' \
+    stor mono2d load 'data/hex-224/' \
+    inter jellium4 exponent 0 strength 2. sr_lr_split 1.5
+
+# hard disks
+run_snaps 16 'hd-calib' \
+    stor mono2d load 'data/hd-calib/' \
+    inter harddisk
+
+# compare against Python demo from the supplements of PRE paper
+# we have to use absurdly small sr_lr_split in such a small system.
+# this test runs extremely slowly as a result.
+run_snaps 16 'py-demo' \
+    stor mono2d load 'data/py-demo/' \
+    inter jellium4 exponent 1 strength 1 sr_lr_split .3
+
+if $nop; then
+    exit 0
+fi
+
+# write a gnuplot script to visualize the results
+write_comp_plot >cmp/.plt &
+
+wait
