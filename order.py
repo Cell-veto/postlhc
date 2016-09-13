@@ -22,6 +22,7 @@
 #   order.py rho load dir/ cohgofr coherent.dat
 # (Fig 3a in http://dx.doi.org/10.1103/PhysRevLett.114.035702)
 
+import os
 import sys
 import numpy as np
 from scipy.interpolate import RectBivariateSpline
@@ -60,7 +61,11 @@ def load_periods (filename):
 
 def load_coords (filename):
     """ load a coords.dat file """
-    data = np.loadtxt (filename)
+    try:
+        data = np.loadtxt (filename)
+    except:
+        print >>sys.stderr, 'error loading %s (pwd = %s)' % (filename, os.getcwd ())
+        raise
     return data[:,:2]
 
 def normals_and_weights (diagr, relev = None):
