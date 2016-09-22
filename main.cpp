@@ -26,6 +26,7 @@ int main (int, const char **argv)
     bool redirect_log = false;
     bool write_gofr = false;
     double max_cell_width = -1.;
+    double snap_disp = 100;
     unsigned long random_seed = 42;
     unsigned long snap_target = 100000;
 
@@ -59,6 +60,10 @@ int main (int, const char **argv)
         else if (kw == "snap")
         {
             snap_target = read_arg <unsigned long> (argv);
+        }
+        else if (kw == "snap_disp")
+        {
+            snap_disp = read_arg <double> (argv);
         }
         else if (kw == "recover")
         {
@@ -220,7 +225,7 @@ int main (int, const char **argv)
         }
 
         // first iteration was quicker for testing
-        jmany = 100;
+        jmany = snap_disp;
         gofr_samples = 1000;
 
         stor->dump_report (std::cerr);
