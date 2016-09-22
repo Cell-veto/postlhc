@@ -143,6 +143,8 @@ int main (int, const char **argv)
     if (redirect_log)
         redirect_cout (prefix + "log", recover);
 
+    std::cerr << "hostname " << hostname () << '\n';
+
     // load data
     stor->load_periods (in_prefix + "periods");
     unsigned snap = 0;

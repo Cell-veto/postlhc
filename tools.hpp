@@ -30,6 +30,8 @@ void shell (string_ref command);
 // return true if the file exists and could probably be read
 bool file_is_readable (string_ref path);
 
+string hostname ();
+
 // throw a std::runtime_error
 void rt_error (string_ref msg) __attribute__((noreturn));
 

@@ -50,6 +50,14 @@ bool file_is_readable (string_ref path)
     return !! (stat_result.st_mode & S_IRUSR);
 }
 
+string hostname ()
+{
+    char buf[HOST_NAME_MAX+1];
+    gethostname (buf, HOST_NAME_MAX);
+    buf[HOST_NAME_MAX] = 0;
+    return buf;
+}
+
 void rt_error (string_ref msg)
 {
     throw std::runtime_error (msg);
