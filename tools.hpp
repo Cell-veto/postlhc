@@ -32,6 +32,9 @@ bool file_is_readable (string_ref path);
 
 string hostname ();
 
+// split string into space-separated words
+std::vector <string> string_split (string_ref str);
+
 // throw a std::runtime_error
 void rt_error (string_ref msg) __attribute__((noreturn));
 

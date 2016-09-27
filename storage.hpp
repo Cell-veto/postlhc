@@ -9,8 +9,15 @@ const unsigned MAX_DIM = 3;
 struct MostGeneralParticle
 {
     vector <MAX_DIM> coords;
-    double radius;
-    double tag;
+    unsigned tag;
+    vector <MAX_DIM> disp;
+
+    // sorting predicate
+    static
+    bool by_tag (const MostGeneralParticle &lhs, const MostGeneralParticle &rhs)
+    {
+        return lhs.tag < rhs.tag;
+    }
 };
 
 struct Periods : vector <MAX_DIM>
@@ -79,27 +86,84 @@ struct AbstractStorage : AbstractParticleSink, FactoryProduct <AbstractStorage>
 };
 
 // in-memory encodings
-struct Monodisperse2D
+template <unsigned DIM_>
+struct EncodedParticle
 {
-    static const unsigned DIM = 2;
-    struct Payload {};
+    static constexpr unsigned DIM = DIM_;
+    uint64_t coord[DIM];
 
-    static
-    void decode_props (MostGeneralParticle *most, const Payload &)
+    bool in_use () const
     {
-        most->radius = 1.;
-        most->tag = 0.;
+        return coord[1] & 1ull;
     }
 
-    static
-    void encode_props (Payload *, const MostGeneralParticle &)
+    void clear ()
+    {
+        coord[1] = 0;
+    }
+
+    unsigned tag () const
+    {
+        return 0;
+    }
+
+    void set_tag (unsigned)
+    {
+    }
+
+    const vector <MAX_DIM> disp () const
+    {
+        return zero_vector <MAX_DIM> ();
+    }
+
+    void set_disp (const vector <MAX_DIM> &)
+    {
+    }
+
+    void add_displacement (unsigned /* direction */, double /* delta */)
     {
     }
 };
 
-struct Monodisperse3D : Monodisperse2D
+struct Monodisperse2D : EncodedParticle <2>
 {
-    static const unsigned DIM = 3;
+};
+
+struct Monodisperse3D : EncodedParticle <3>
+{
+};
+
+template <typename BASE>
+struct Tagged : BASE
+{
+    unsigned tag_;
+    vector <MAX_DIM> disp_;
+
+    unsigned tag () const
+    {
+        return tag_;
+    }
+
+    void set_tag (unsigned tag)
+    {
+        tag_ = tag;
+    }
+
+    const vector <MAX_DIM> &disp () const
+    {
+        return disp_;
+    }
+
+    void set_disp (const vector <MAX_DIM> &disp)
+    {
+        disp_ = disp;
+    }
+
+    void add_displacement (unsigned direction, double delta)
+    {
+        assert (direction < MAX_DIM);
+        disp_[direction] += delta;
+    }
 };
 
 // exception: no more free cells, need to subdivide
@@ -114,21 +178,13 @@ struct CellStorage : AbstractStorage
 };
 
 template <typename ENCODING>
-struct Storage : ENCODING, CellStorage
+struct Storage : CellStorage
 {
 public:
     typedef uint64_t key_t;
-    typedef ENCODING encoding_t;
-    typedef typename ENCODING::Payload Payload;
+    typedef ENCODING CellData;
     static const unsigned DIM = ENCODING::DIM;
     typedef vector <DIM> vector_t;
-
-    struct CellData : Payload
-    {
-        uint64_t coord[DIM];
-        bool in_use () const { return coord[1] & 1ull; }
-        void clear () { coord[1] = 0; }
-    };
 
     virtual
     void reduce_cell_width (double target)
@@ -448,11 +504,24 @@ public:
         (void)insert (part);
     }
 
+    // insert a new particle, user side.  may reallocate.
     key_t insert (const MostGeneralParticle &part)
     {
+        // guard against invalid user input
+        for (unsigned n = 0; n != DIM; ++n)
+        {
+            if (! (part.coords[n] >= 0.) || ! (part.coords[n] < period (n)))
+            {
+                std::cerr << "particle coordinate invalid: 0 <= "
+                    << part.coords[n] << " < " << period (n) << " is violated"
+                    << ABORT;
+            }
+        }
+
         CellData cd;
-        this->encode_coords (cd.coord, part.coords);
-        this->encode_props (static_cast <Payload *> (&cd), part);
+        encode_coords (cd.coord, part.coords);
+        cd.set_tag (part.tag);
+        cd.set_disp (part.disp);
         key_t ret = put_encoded_possibly_subdivide (cd);
         ++num_;
         return ret;
@@ -461,10 +530,11 @@ public:
     void get (MostGeneralParticle *ret, key_t k) const
     {
         assert (k < num_cells_);
-        assert (data_[k].in_use ());
-        this->decode_coords (&ret->coords, data_[k].coord);
-        this->decode_props (ret,
-            static_cast <const Payload &> (data_[k]));
+        const CellData &cd = data_[k];
+        assert (cd.in_use ());
+        decode_coords (&ret->coords, cd.coord);
+        ret->tag = cd.tag ();
+        ret->disp = cd.disp ();
     }
 
     void extract (MostGeneralParticle *ret, key_t k)
@@ -503,6 +573,7 @@ public:
         CellData moving = pull_encoded (whom);
 
         moving.coord[direction] += uint64_t (real2frac[direction] * distance);
+        moving.add_displacement (direction, distance);
         
         // maintain in_use flag
         moving.coord[1] |= 1;
@@ -832,6 +903,6 @@ AbstractChainRunner *make_chainrunner (string_ref typecode, AbstractStorage *sto
 AbstractCorrelator *make_correlator (string_ref attribute, AbstractStorage *stor,
     double bin_width, double rmax);
 void add_data (AbstractParticleSink *, string_ref filename);
-void save_data (string_ref filename, AbstractParticleGenerator *);
+void save_data (string_ref filename, AbstractStorage *);
 
 #endif /* STORAGE_HPP_INCLUDED */

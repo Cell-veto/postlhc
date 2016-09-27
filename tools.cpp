@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <boost/algorithm/string.hpp>
 
 uint64_t gclock ()
 {
@@ -66,6 +67,14 @@ string hostname ()
 void rt_error (string_ref msg)
 {
     throw std::runtime_error (msg);
+}
+
+std::vector <string> string_split (string_ref str)
+{
+    std::vector <string> ret;
+    boost::algorithm::split (ret, str,
+        boost::is_any_of ("\t "), boost::token_compress_on);
+    return ret;
 }
 
 std::ostream &operator<< (std::ostream &os, const AbortObject &)

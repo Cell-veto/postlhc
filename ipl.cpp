@@ -72,6 +72,8 @@ struct IPL : PowerLawInteraction
 
 static Register <ChainRunner <IPL, Monodisperse2D>>
     one ("ipl/mono2d");
+static Register <ChainRunner <IPL, Tagged <Monodisperse2D>>>
+    one_a ("ipl/tagged_mono2d");
 static Register <ChainRunner <TruncatedIPL, Monodisperse2D>>
     two ("truncipl/mono2d");
 static Register <ChainRunner <IPL, Monodisperse3D>>

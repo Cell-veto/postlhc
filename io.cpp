@@ -1,7 +1,9 @@
 // (c) 2015-2016 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
 #include "storage.hpp"
 #include <fstream>
+#include <memory>
 #include <boost/algorithm/string/predicate.hpp>
+using boost::algorithm::starts_with;
 using boost::algorithm::ends_with;
 
 Periods Periods::from_file (string_ref filename)
@@ -36,47 +38,41 @@ void Periods::savetxt (string_ref filename)
         rt_error ("error writing file: " + filename);
 }
 
+struct IoError {};
+
+// basic I/O for monodisperse particles.
 static
-bool more_data_on_line (std::istream &is)
+MostGeneralParticle parse_line_from_file (unsigned no, string_ref line)
 {
-    while (is)
+    if (MAX_DIM > 3u)
+        std::cerr << "DIM>3 is not implemented" << ABORT;
+
+    // read columns
+    std::vector <string> cs = string_split (line);
+    if (cs.size () > MAX_DIM)
+        rt_error ("too many columns");
+    double cd[6] = { 0 };
+    for (size_t n = 0; n != cs.size (); ++n)
     {
-        switch (is.peek ())
-        {
-        case EOF:
-            // ignore EOF caused by our peeking
-            is.clear (std::ios::eofbit);
-        case '\n':
-            return false;
-        case ' ':
-        case '\t':
-            // skip over whitespace
-            is.get ();
-            assert (!!is);
-            continue;
-        default:
-            return true;
-        }
+        size_t consumed;
+        cd[n] = std::stod (cs[n], &consumed);
+        if (! (cd[n] >= 0.))
+            rt_error ("negative coordinate: \"" + cs[n] + "\"");
+        if (consumed != cs[n].size ())
+            rt_error ("field not converted completely: \"" + cs[n] + "\"");
     }
 
-    // stream was in error state even before our checking
-    // leave the error bits set so caller can detect this
-    return false;
-}
-
-template <size_t DIM> static
-std::istream &parse_line (std::istream &is, vector <DIM> &d)
-{
-    unsigned n = 0;
-    while (is)
-    {
-        if (n == DIM)
-            rt_error ("line too long in parse_line");
-        if (!more_data_on_line (is >> d[n++]))
-            return is;
-    }
-
-    return is;
+    // put into MostGeneralParticle
+    MostGeneralParticle part;
+    std::memset (&part, 0, sizeof part);
+    part.coords[0] = cd[0];
+    part.coords[1] = cd[1];
+    part.coords[2] = cd[2];
+    part.tag = no;
+    part.disp[0] = cd[3];
+    part.disp[1] = cd[4];
+    part.disp[2] = cd[5];
+    return part;
 }
 
 void add_data (AbstractParticleSink *sink, string_ref filename)
@@ -85,17 +81,15 @@ void add_data (AbstractParticleSink *sink, string_ref filename)
 
     if (ends_with (filename, ".dat"))
     {
-        MostGeneralParticle most;
-        std::memset (&most, 0, sizeof most);
-        most.radius = 1.;
-
         std::ifstream ifs (filename);
         unsigned N = 0;
-        while (parse_line (ifs, most.coords))
+        string line;
+        while (std::getline (ifs, line))
         {
+            MostGeneralParticle part = parse_line_from_file (N, line);
             for (unsigned n = 0; n != MAX_DIM; ++n)
-                particle_coords[n].add (most.coords[n]);
-            sink->put (most);
+                particle_coords[n].add (part.coords[n]);
+            sink->put (part);
             ++N;
         }
 
@@ -123,29 +117,85 @@ void add_data (AbstractParticleSink *sink, string_ref filename)
     }
 }
 
-void save_data (string_ref filename, AbstractParticleGenerator *source)
+static
+void write_mono_particle_to_stream (std::ostream &os, const MostGeneralParticle &part, bool tagged)
+{
+    if (MAX_DIM > 3u)
+        std::cerr << "DIM>3 is not implemented" << ABORT;
+
+    os << part.coords[0] << ' ' << part.coords[1] << ' ' << part.coords[2];
+    
+    if (tagged)
+        os << ' ' << part.disp[0] << ' ' << part.disp[1] << ' ' << part.disp[2];
+        
+    os << '\n';
+
+    if (!os)
+        throw IoError ();
+}
+
+static
+void write_mono_particles_to_stream (std::ostream &os, AbstractParticleGenerator &source, bool tagged)
+{
+    if (tagged)
+    {
+        // sort particles by tag to keep original order
+        // also, we'll output displacements
+        std::vector <MostGeneralParticle> list;
+        MostGeneralParticle part;
+        while (source.get (&part))
+            list.push_back (part);
+        std::sort (list.begin (), list.end (), MostGeneralParticle::by_tag);
+        size_t tag = 0;
+        for (const auto &p : list)
+        {
+            if (p.tag != tag++)
+                std::cerr << "missing particle with tag " << (tag-1) << ABORT;
+            write_mono_particle_to_stream (os, p, true);
+        }
+    }
+    else
+    {
+        // just write them out in generator order
+        MostGeneralParticle part;
+        while (source.get (&part))
+            write_mono_particle_to_stream (os, part, false);
+    }
+}
+
+static
+void save_data (string_ref filename, AbstractParticleGenerator &source, bool tagged)
 {
     if (ends_with (filename, ".dat"))
     {
-        MostGeneralParticle most;
-
         std::ofstream ofs (filename);
         ofs.precision (15);
 
-        while (source->get (&most))
+        try
         {
             if (!ofs)
-                rt_error ("error writing to file " + filename);
-            ofs << most.coords[0] << ' ' << most.coords[1] << ' ' << most.coords[2] << '\n';
+                throw IoError ();
+
+            write_mono_particles_to_stream (ofs, source, tagged);
+            ofs.close ();
+
+            if (!ofs)
+                throw IoError ();
         }
-
-        ofs.close ();
-
-        if (!ofs)
+        catch (IoError)
+        {
             rt_error ("error writing to file " + filename);
+        }
     }
     else
     {
         rt_error ("Not implemented");
     }
+}
+
+void save_data (string_ref filename, AbstractStorage *stor)
+{
+    std::unique_ptr <AbstractParticleGenerator> gen (stor->all_particles ());
+    bool tagged = starts_with (stor->typecode (), "tagged_");
+    save_data (filename, *gen, tagged);
 }

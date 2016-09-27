@@ -14,8 +14,7 @@ void AbstractStorage::add_data (string_ref filename)
 
 void AbstractStorage::save_data (string_ref filename)
 {
-    std::unique_ptr <AbstractParticleGenerator> all (all_particles ());
-    ::save_data (filename, &*all);
+    ::save_data (filename, this);
 }
 
 AbstractStorage *make_storage (string_ref encoding_typecode)
@@ -24,4 +23,5 @@ AbstractStorage *make_storage (string_ref encoding_typecode)
 }
 
 static Register <Storage <Monodisperse2D>> one ("mono2d");
+static Register <Storage <Tagged <Monodisperse2D>>> three ("tagged_mono2d");
 static Register <Storage <Monodisperse3D>> two ("mono3d");
