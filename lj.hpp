@@ -34,7 +34,7 @@ struct LennardJones : public Interaction
     LennardJones ()
     {
         strength = 1.;
-        sr_lr_split = 2.;
+        sr_lr_split = 3.8;
         scale = 2.;
         set_parameter ("cutoff", INFINITY);
     }
