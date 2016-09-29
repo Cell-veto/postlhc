@@ -159,7 +159,7 @@ public:
     }
 
 private:
-    static const int N_ = 64;
+    static const unsigned N_ = 64;
     vector <N_> cumsum_;
     vector <N_> binrad_; // upper bounds of bins
     vector <N_> binexp_; // == pareto alpha for that bin
