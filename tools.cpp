@@ -50,6 +50,11 @@ bool file_is_readable (string_ref path)
     return !! (stat_result.st_mode & S_IRUSR);
 }
 
+#ifndef HOST_NAME_MAX
+// for MacOS. 255 is the limit according to POSIX.
+#define HOST_NAME_MAX 255
+#endif
+
 string hostname ()
 {
     char buf[HOST_NAME_MAX+1];
