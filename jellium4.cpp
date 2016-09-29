@@ -99,11 +99,12 @@ private:
 };
 
 
-template <unsigned DIM>
+template <unsigned DIM, typename ENCODING>
 struct Jellium4 : JelliumInteraction
 {
     typedef vector <DIM> vector_t;
     typedef MtwDiscreteSampler <vector_t> prober_t;
+    typedef ENCODING encoding_t;
     Periods periods;
     double cell_volume;
     double error_bound;
@@ -177,7 +178,9 @@ struct Jellium4 : JelliumInteraction
     void setup_probe_distr (const AbstractStorage *stor_)
     {
         // FIXME introduce CellStorage
-        auto stor = dynamic_cast <const Storage <Monodisperse2D> *> (stor_);
+        auto stor = dynamic_cast <const Storage <ENCODING> *> (stor_);
+        if (!stor)
+            std::cerr << "jellium4: incompatible Storage passed in" << ABORT;
 
         vector_t cwid = stor->cell_widths ();
         cell_volume = fproduct (cwid.begin (), cwid.end ());
@@ -253,5 +256,7 @@ struct Jellium4 : JelliumInteraction
     }
 };
 
-static Register <ChainRunner <Jellium4 <2>, Monodisperse2D>>
+static Register <ChainRunner <Jellium4 <2, Monodisperse2D>, Monodisperse2D>>
     one ("jellium4/mono2d");
+static Register <ChainRunner <Jellium4 <2, Tagged <Monodisperse2D>>, Tagged <Monodisperse2D>>>
+    one_tagged ("jellium4/tagged_mono2d");
