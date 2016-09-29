@@ -12,6 +12,7 @@ you run into problems, feel free to contact <sebastian.kapfer@fau.de>.
 If you're using this, please cite the original publication,
 Sebastian C. Kapfer, Werner Krauth:
 "Cell-veto Monte Carlo algorithm for long-range systems"
+http://journals.aps.org/pre/abstract/10.1103/PhysRevE.94.031302
 arXiv:1606.06780 [cond-mat.stat-mech]
 
 
