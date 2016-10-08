@@ -50,7 +50,7 @@ struct LennardJonesGauss : Interaction
         else
             rt_error ("Invalid parameter: " + name);
 
-        if (cutoff < LJ_MINIMUM || cutoff < gauss_r0)
+        if (gauss_r0 < LJ_MINIMUM || cutoff < gauss_r0)
             std::cerr << "Code is not correct in this regime" << ABORT;
 
         // precompute some interesting quantities
@@ -62,7 +62,7 @@ struct LennardJonesGauss : Interaction
 
     double sr_repulsion_range () const
     {
-        return cutoff;
+        return gauss_r0;
     }
 
     double sr_attraction_range () const
