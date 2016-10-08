@@ -41,6 +41,13 @@ struct Interaction
         std::cerr << "random_sr_attraction dummy called" << ABORT;
     }
 
+    // large distance, signals escape to infinity
+    static constexpr
+    double ESCAPES_TO_INFINITY ()
+    {
+        return 1e300;
+    }
+
     // LONG-RANGE INTERACTIONS
     // rate of probe events, see IPL for an example
     // default: no probes, just short-range events
@@ -269,7 +276,8 @@ struct ChainRunner : public AbstractChainRunner
                 }
             }
 
-            // attractive interactions
+            // attractive short-range interactions
+            // these always occur at displacements later than repulsive ones.
             if (ortho_rsq < sq (attract_range))
             {
                 // note that even if the other particle is ahead _now_, we might
@@ -278,14 +286,9 @@ struct ChainRunner : public AbstractChainRunner
                 double xsq_virt = sq (x_virt);
                 double rsq_virt = ortho_rsq + xsq_virt;
                 double delta = inter.random_sr_attraction (rsq_virt, &random);
-                // delta == -rsq_virt signals 'no event' (will not enter the next if clause)
-                assert (delta == -rsq_virt ||  delta >= 0.);
-
-                if (xsq_virt + delta > 0.)
-                {
-                    disp = (x_now-x_virt) + delta / (sqrt (xsq_virt + delta) - x_virt);
-                    goto have_event;
-                }
+                assert (delta >= 0.);
+                disp = (x_now-x_virt) + delta / (sqrt (xsq_virt + delta) - x_virt);
+                goto have_event;
             }
 
             // no event, try next particle

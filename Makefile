@@ -15,6 +15,7 @@ SOURCES = \
     chainrunner.cpp \
     ipl.cpp \
     lj.cpp \
+    ljg.cpp \
     harddisk.cpp \
     io.cpp \
     paircorrel.cpp \

@@ -58,7 +58,7 @@ run () {
     run_snaps 10 $@
 }
 
-dontrun () {
+dont () {
     :
 }
 
@@ -82,6 +82,11 @@ run_snaps 7 'lj-test' \
 run_snaps 7 'lj-exact' \
     stor mono2d load 'data/lj-test/' \
     inter lj strength 1. cutoff inf sr_lr_split 2.
+
+# Lennard-Jones-Gauss potential (truncated)
+run_snaps 7 'ljg-test' \
+    stor mono2d load 'data/ljg-test/' \
+    inter ljg temperature 0.6000
 
 # verify the (full LR) potential with both jellium implementations against exact result
 run 'jancovici-j3' \
