@@ -258,11 +258,13 @@ struct ChainRunner : public AbstractChainRunner
             double x_now = r_now[direction];
             double xsq = sq (x_now);
             double ortho_rsq = norm_ortho_sq (r_now, direction);
+            double x_min = x_now - planned_disp;
 
             double disp;
 
             // repulsive interactions
-            if (x_now > 0. && ortho_rsq < sq (repuls_range))
+            double rsq_min = ortho_rsq + (x_min > 0. ? sq (x_min) : 0.);
+            if (x_now > 0. && rsq_min < sq (repuls_range))
             {
                 double rsq = ortho_rsq + xsq;
                 double delta = inter.random_sr_repulsion (rsq, &random);
@@ -278,7 +280,8 @@ struct ChainRunner : public AbstractChainRunner
 
             // attractive short-range interactions
             // these always occur at displacements later than repulsive ones.
-            if (ortho_rsq < sq (attract_range))
+            // FIXME more aggressive pruning
+            if (x_min < 0. && ortho_rsq < sq (attract_range))
             {
                 // note that even if the other particle is ahead _now_, we might
                 // schedule an event after passing it.
