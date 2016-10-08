@@ -127,8 +127,10 @@ struct LennardJonesGauss : Interaction
 
     double random_sr_repulsion (double rsq, RandomContext *random)
     {
-        return fmax (random_repulsive_lift_lj (rsq, random),
-                     random_repulsive_lift_g  (rsq, random)) - rsq;
+        double rsq_evt = random_repulsive_lift_g  (rsq, random);
+        if (rsq_evt <= sq (LJ_MINIMUM))
+            update_max (&rsq_evt, random_repulsive_lift_lj (rsq, random));
+        return rsq_evt - rsq;
     }
 
     double random_attractive_lift_lj (double rsq, RandomContext *random)
@@ -177,10 +179,18 @@ struct LennardJonesGauss : Interaction
         }
     }
 
+    static
+    void update_min (double *m, double val)
+    {
+        *m = fmin (*m, val);
+    }
+
     double random_sr_attraction (double rsq, RandomContext *random)
     {
-        return fmin (random_attractive_lift_lj (rsq, random),
-                     random_attractive_lift_g  (rsq, random)) - rsq;
+        double rsq_evt = random_attractive_lift_lj (rsq, random);
+        if (rsq_evt >= sq (gauss_r0))
+            update_min (&rsq_evt, random_attractive_lift_g  (rsq, random));
+        return rsq_evt - rsq;
     }
 };
 
