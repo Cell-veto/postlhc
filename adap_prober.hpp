@@ -10,7 +10,7 @@ using boost::format;
 class AdaptiveProber
 {
 public:
-    void init (unsigned DIM, double /* rtol */,
+    void calib_begin (unsigned DIM,
         double rinner, double inner_paralpha,
         double rcut, double tail_paralpha)
     {
@@ -33,7 +33,7 @@ public:
             rcut *= .9;
         }
         binrad_[0] = rcut;
-        binexp_[0] = NAN;
+        binexp_[0] = -1.;  // const. rate (not used)
 
         // fix bad exponents
         for (unsigned i = 1; i != N_; ++i)

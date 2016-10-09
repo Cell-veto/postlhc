@@ -84,19 +84,6 @@ struct PowerLawInteraction : Interaction
         return unit_potential (norm_sq (vec));
     }
 
-    double invert_unit_potential (double e)
-    {
-        if (exponent == 0)
-            return std::exp (-2.*e);
-        else
-        {
-            e *= exponent;
-            if (e < 0.)
-                return -1.;
-            return pow (e, -2./exponent);
-        }
-    }
-
     /*
     double potential (double rsq)
     {

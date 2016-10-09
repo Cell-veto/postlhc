@@ -1,5 +1,6 @@
 // (c) 2015-2016 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
-// IPL potentials in the screened flavor (no lattice sum)
+// IPL potentials in the screened flavor (no lattice sum, but polar pairs)
+// FIXME documentation
 #include "ecmc.hpp"
 #include "ipl.hpp"
 #include "adap_prober.hpp"
@@ -7,16 +8,21 @@
 static
 const double SAFETY_CUSHION = 2.;
 
+template <size_t DIM, typename CALLABLE>
 static
-double zmin = 1e99;
-
-static
-double signum (double x)
+void for_all_angles (unsigned discretization, const CALLABLE &yield)
 {
-    if (x < 0)
-        return -1;
-    else
-        return 1;
+    // FIXME explicit 3D missing (strictly speaking, we might underestimate
+    // the LR if the box is very different from cubic.  ecmc.hpp would
+    // violently complain, however, and this would not go undetected)
+    double incr = 2*M_PI / discretization;
+    vector <DIM> d = zero_vector <DIM> ();
+    for (unsigned i = 0; i != discretization; ++i)
+    {
+        d[0] = cos (incr*i);
+        d[1] = sin (incr*i);
+        yield (d);
+    }
 }
 
 struct Jellium3 : JelliumInteraction
@@ -37,37 +43,60 @@ struct Jellium3 : JelliumInteraction
         JelliumInteraction::set_parameter (name, value);
     }
 
-    template <size_t DIM>
-    void calib_add (const vector <DIM> &r)
+    void add_sample (unsigned direction, double r, double rate)
     {
-        for (unsigned direction = 0; direction != DIM; ++direction)
-        {
-            double rate = lr_event_rate (r, direction);
-            prober[direction].calib_add (norm (r), SAFETY_CUSHION * rate, error_bound);
-        }
+        rate *= SAFETY_CUSHION;
+        prober[direction].calib_add (r, rate, error_bound);
     }
 
     template <unsigned DIM>
-    void setup_calib ()
+    void calibrate (unsigned direction)
     {
-        double r_max = 20 * period.max ();
+        typedef vector <DIM> vector_t;
+        const double L = period[direction];
+        const double r_decay = sr_lr_split; // first decaying inner shell
+        const double r_tail  = 2*L;  // last (decaying) inner shell, begin tail
+        std::cerr << "jellium3_init shell_radii " << r_decay << " " << r_tail << "\n";
+        std::cerr << "jellium3_init error_bound " << error_bound << "\n";
 
-        for (unsigned i = 0; i != 10; ++i)
+        prober[direction].calib_begin (DIM,
+            r_decay, exponent+0.5,               // inner paralpha
+            r_tail,  exponent+3);                // tail paralpha (= exponent+4 decay)
+
+        // scan along the sr_lr_split
+        for_all_angles <DIM> (100, [&] (const vector_t &unit_vec)
         {
-            vector <DIM> u_vec = zero_vector <DIM> ();
-            u_vec[0] = cos (2*M_PI/10 * i);
-            u_vec[1] = sin (2*M_PI/10 * i);
+            const double r = sr_lr_split;
+            add_sample (direction, r, lr_event_rate (r*unit_vec, direction));
+        });
 
-            for (double r = 0; r < r_max; r += 1e-3)
-                calib_add (r * u_vec);
-            for (double r = 1e-10 * r_max; r < 1e10 * r_max; r *= 1.1)
-                calib_add (r * u_vec);
+        // in extremely small systems, the first few copies can cause trouble
+        for (int i = -10; i <= 10; ++i)
+        {
+            vector_t ridge = zero_vector <DIM> ();
+            ridge[direction] = i*L;
+            for (; ridge[direction] < 3*sr_lr_split; ridge[direction] += 1e-3*sr_lr_split)
+                add_sample (direction, norm (ridge), lr_event_rate (ridge, direction));
         }
+
+        for_all_angles <DIM> (30, [&] (const vector_t &unit_vec)
+        {
+            for (double r = 0; r < 2*L; r += 1e-3*sr_lr_split)
+                add_sample (direction, r, lr_event_rate (r*unit_vec, direction));
+
+            for (double r = 1.; r < 1e15*L; r *= 1.0001)
+                add_sample (direction, r, lr_event_rate (r*unit_vec, direction));
+        });
+
+        prober[direction].calib_finish (DIM);
     }
 
+    // FIXME remove DIM parameter
     void notify_error_bound (const AbstractStorage *stor,
-        double err_bound, size_t DIM)
+        double err_bound, size_t /* DIM */)
     {
+        const unsigned DIM = stor->dimension ();
+
         if (error_bound != err_bound || period != stor->periods ())
         {
             error_bound = err_bound;
@@ -77,28 +106,20 @@ struct Jellium3 : JelliumInteraction
                 std::cerr << "jellium3: exponent " << exponent
                     << " too small for dimension " << DIM << ABORT;
 
-            for (unsigned direction = 0; direction != DIM; ++direction)
-                prober[direction].init (DIM, error_bound,
-                    .25*period[direction] + error_bound /* tail radius */,
-                    exponent+1 /* tail paralpha (= exponent+2 decay) */,
-                    3*period[direction] + error_bound /* tail radius */,
-                    exponent+2 /* tail paralpha (= exponent+3 decay) */);
-
             switch (DIM)
             {
             case 2:
-                setup_calib <2> ();
-                break;
+                for (unsigned n = 0; n != DIM; ++n)
+                    calibrate <2> (n);
+                return;
             case 3:
-                setup_calib <3> ();
-                break;
+                for (unsigned n = 0; n != DIM; ++n)
+                    calibrate <3> (n);
+                return;
             default:
                 std::cerr << "jellium3: DIM = " << DIM
                     << " not implemented" << ABORT;
             }
-
-            for (unsigned direction = 0; direction != DIM; ++direction)
-                prober[direction].calib_finish (DIM);
         }
     }
 
@@ -114,111 +135,73 @@ struct Jellium3 : JelliumInteraction
     }
 
     template <size_t DIM>
-    double compute_shift (const vector <DIM> &r, unsigned direction, double rhs)
+    double lr_event_rate (const vector <DIM> &r_, unsigned direction)
     {
-        rhs *= .5;
-        double rsq = invert_unit_potential (rhs);
-
-        if (rsq <= 0.)
-            return 0.;
-
-        double x = r[direction];
-        double c = norm_sq (r) - rsq;
-        if (x*x - c <= 0)
-            return 0.;
-        double D = sqrt (x*x - c);
-        double q = (x<0) ? (D-x) : (-D-x);  // q has opposite sign of x
-        double x1 = q, x2 = c/q;
-        if (x1 < 0 && x2 > 0)
-            return x1;
-        else if (x2 < 0 && x1 < 0)
-            return x2;
-        std::cerr << "hihihi" << norm_sq (r) << " "<<  rhs << " " << (x*x-c) << " " << x1 << " " << x2 << ABORT;
-        return 0.;
-    }
-
-    template <size_t DIM>
-    double lr_event_rate (const vector <DIM> &r, unsigned direction)
-    {
-        typedef vector <DIM> vector_t;
-
-        const double rsq = norm_sq (r);
-        const double x = r[direction];
         const double L = period[direction];
+        const vector <DIM> shift = unit_vector <DIM> (direction) * (L/2);
 
-        double rate;
+        // assign polar pair partner
+        const double x_prim = r_[direction];
+        const double x_pair = x_prim - 2*L * floor (x_prim/L) - L;
 
-        /*
-        if (rsq == 0.)
-            return 0;
+        bool first_copy = fabs (x_prim - x_pair) < 2*L;
+        vector <DIM> r[2] = { r_, r_ };
+        if (x_prim >= 0.)
+            r[0][direction] = x_pair;
+        else
+            r[1][direction] = x_pair;
+        double rsq[2] = { norm_sq (r[0]), norm_sq (r[1]) };
 
-        if (x*x < L*L && (rsq-x*x) < L*L)
+        assert (r[0][direction] < 0.);
+        assert (r[1][direction] >= 0.);
+
+        // compute the rate for the polar pair
+        double rate = 0.;
+
+        // for large distances, the naive formula for the event rate can be
+        // numerically problematic.
+        if (fmax (rsq[0], rsq[1]) < 1e6*L*L)
         {
-            // screening charges (discarded in the first periodic cell)
-            vector_t rpp  = r + ( 1.5*L) * e;
-            double u_rpp  = unit_potential (rpp);
-            vector_t imp  = r + (     L) * e;
-            double lr_imp = unit_directional_derivative (imp[direction], norm_sq (imp));
-            vector_t rp   = r + (  .5*L) * e;
-            double u_rp   = unit_potential (rp);
-
-            double lr_im0 = unit_directional_derivative (x, rsq);
-
-            vector_t rm   = r + ( -.5*L) * e;
-            double u_rm   = unit_potential (rm);
-            vector_t imm  = r + (    -L) * e;
-            double lr_imm = unit_directional_derivative (imm[direction], norm_sq (imm));
-            vector_t rmm  = r + (-1.5*L) * e;
-            double u_rmm  = unit_potential (rmm);
-
-            std::cerr << x << " " << rsq << "\n";
-            std::cerr << u_rpp << " " << u_rp << " " << u_rm << " " << u_rmm << "\n";
-            std::cerr << lr_imp << " " << lr_im0 << " " << lr_imm << "\n";
-
-            rp[direction] += compute_shift (rp, direction, (u_rpp-u_rm) / L + lr_imp - lr_im0);
-            rm[direction] += compute_shift (rm, direction, (u_rp-u_rmm) / L + lr_im0 - lr_imm);
-
-            u_rp   = unit_potential (rp);
-            u_rm   = unit_potential (rm);
-
-            rate = (u_rp-u_rm) / L;
-
-            if (rsq > sq (sr_lr_split))
-                rate += lr_im0;
-        }
-        else */
-        if (rsq < 1e6 * L*L)
-        {
-            vector_t rp = r;
-            double &xp  = rp[direction];
-            xp         += .5*L;
-            xp         += signum (xp) * sqrt (fmax (0., .25*L*L - norm_sq (rp)));
-            double u_rp = unit_potential (rp);
-            vector_t rm = r;
-            double &xm  = rm[direction];
-            xm         += -.5*L;
-            xm         += signum (xm) * sqrt (fmax (0., .25*L*L - norm_sq (rm)));
-            double u_rm = unit_potential (rm);
-
-            rate  = (u_rp-u_rm) / L;
-
-            if (sqrt (fmin (norm_sq (rm), norm_sq (rp))) < zmin)
+            for (int i = 0; i != 2; ++i)
             {
-                zmin = sqrt (fmin (norm_sq (rm), norm_sq (rp)));
-                std::cerr << "ZMIN " << zmin << "\n";
-            }
+                double x = r[i][direction];
 
-            // main charge -- parts smaller than sr_lr_split are handled by the SR code
-            if (rsq > sq (sr_lr_split))
-                rate += unit_directional_derivative (x, rsq);
+                double u_rp = (i==0 && first_copy)
+                    ? 0.
+                    : unit_potential (r[i] + shift);
+                double u_rm = (i==1 && first_copy)
+                    ? 0.
+                    : unit_potential (r[i] - shift);
+
+                rate += (u_rp-u_rm) / L;
+
+                // main charge -- parts smaller than sr_lr_split are handled by the SR code
+                if (rsq[i] > sq (sr_lr_split))
+                    rate += unit_directional_derivative (x, rsq[i]);
+            }
+        }
+        else if (fmax (rsq[0], rsq[1]) < 1e20*L*L)
+        {
+            for (int i = 0; i != 2; ++i)
+            {
+                double x = r[i][direction];
+                // avoid catastrophic cancellation in the far field
+                // (valid also for exponent = 0)
+                rate += x * pow (rsq[i], -.5*6. -.5*exponent) * L*L
+                    * (2+exponent) * (1./24) * (3.*rsq[i] - (4+exponent)*x*x);
+            }
         }
         else
         {
-            // avoid catastrophic cancellation in the far field
-            // (valid also for exponent = 0)
-            rate = x * pow (rsq, -.5*6. -.5*exponent) * L*L
-                * (2+exponent) * (1./24) * (3.*rsq - (4+exponent)*x*x);
+            // rate < numerical precision
         }
+
+        // asymptotic decay of particle event rate is ~ 1 / r^(n+4).
+        double w = (r[0][direction] == r_[direction])
+            ? norm_sq (r[1]) / norm_sq (r[0])
+            : norm_sq (r[0]) / norm_sq (r[1]);
+
+        rate /= 1 + pow (w, -.5 * (exponent+4.));
 
         if (rate <= 0.)
             return 0.;
@@ -235,5 +218,7 @@ struct Jellium3 : JelliumInteraction
 
 static Register <ChainRunner <Jellium3, Monodisperse2D>>
     one ("jellium3/mono2d");
+static Register <ChainRunner <Jellium3, Tagged <Monodisperse2D>>>
+    one_tagged ("jellium3/tagged_mono2d");
 static Register <ChainRunner <Jellium3, Monodisperse3D>>
     two ("jellium3/mono3d");
