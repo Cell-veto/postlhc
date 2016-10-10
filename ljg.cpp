@@ -179,12 +179,6 @@ struct LennardJonesGauss : Interaction
         }
     }
 
-    static
-    void update_min (double *m, double val)
-    {
-        *m = fmin (*m, val);
-    }
-
     double random_sr_attraction (double rsq, RandomContext *random)
     {
         double rsq_evt = random_attractive_lift_lj (rsq, random);

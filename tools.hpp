@@ -234,6 +234,13 @@ void update_max (double *m, double val)
     *m = fmax (*m, val);
 }
 
+inline
+void update_min (double *m, double val)
+{
+    *m = fmin (*m, val);
+}
+
+
 // hypersphere volume, ball volume
 inline constexpr
 double sphere_surface (unsigned DIM)
