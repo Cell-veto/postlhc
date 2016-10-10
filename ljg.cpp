@@ -196,3 +196,5 @@ struct LennardJonesGauss : Interaction
 
 static Register <ChainRunner <LennardJonesGauss, Monodisperse2D>>
     one ("ljg/mono2d");
+static Register <ChainRunner <LennardJonesGauss, Tagged <Monodisperse2D>>>
+    one_tagged ("ljg/tagged_mono2d");
