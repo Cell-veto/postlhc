@@ -2,6 +2,7 @@
 features.mk
 .gdb_history
 postlhc
+perf.data*
 *.o
 .*.swo
 .*.swp
