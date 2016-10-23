@@ -143,4 +143,5 @@ AbstractCorrelator *make_correlator (string_ref attribute, AbstractStorage *stor
 }
 
 static Register <Correlator <Monodisperse2D>> one ("density/mono2d");
+static Register <Correlator <Tagged <Monodisperse2D>>> one_tagged ("density/tagged_mono2d");
 static Register <Correlator <Monodisperse3D>> two ("density/mono3d");
