@@ -29,13 +29,12 @@ struct IPL : PowerLawInteraction
 {
     ParetoProber prober;
 
-    void notify_error_bound (const AbstractStorage *,
-        double err_bound, size_t DIM)
+    void notify_error_bound (const AbstractStorage *stor, double err_bound)
     {
         if (prober.error_bound != err_bound)
         {
             prober.error_bound = err_bound;
-            prober.setup (sr_lr_split, exponent, DIM);
+            prober.setup (sr_lr_split, exponent, stor->dimension ());
         }
     }
 

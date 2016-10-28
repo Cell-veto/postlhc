@@ -95,11 +95,8 @@ struct Interaction
     }
 
     // default: do nothing
-    void notify_error_bound (const AbstractStorage *,
-        double error_bound, size_t DIM)
+    void notify_error_bound (const AbstractStorage *, double /* error_bound */)
     {
-        (void)error_bound;
-        (void)DIM;
     }
 };
 
@@ -179,7 +176,7 @@ struct ChainRunner : public AbstractChainRunner
             inter.set_parameter (name, guess);
 
             inter.notify_random_context (&random);
-            inter.notify_error_bound (stor, stor->cell_diagonal (), DIM);
+            inter.notify_error_bound (stor, stor->cell_diagonal ());
 
             uint64_t t_begin = gclock ();
 
@@ -415,7 +412,7 @@ struct ChainRunner : public AbstractChainRunner
                 planned_disp = disp_left;
                 planned_xdisp = 0.;
 
-                inter.notify_error_bound (stor, stor->cell_diagonal (), DIM);
+                inter.notify_error_bound (stor, stor->cell_diagonal ());
 
                 find_sr_events (stor);
 
@@ -466,7 +463,7 @@ struct ChainRunner : public AbstractChainRunner
     double measure_chain_expansion (stor_t *stor, unsigned direction_, unsigned num_samples = 100)
     {
         inter.notify_random_context (&random);
-        inter.notify_error_bound (stor, stor->cell_diagonal (), DIM);
+        inter.notify_error_bound (stor, stor->cell_diagonal ());
 
         direction = direction_;
         disp_left = stor->periods () [direction_];
@@ -515,7 +512,7 @@ set format "%L"; set log xy; hypot (x,y) = sqrt (x*x+y*y); p "pt.out" index 4 u 
         stor_t *stor = downcast (stor_);
         RandomContext random;
         inter.notify_random_context (&random);
-        inter.notify_error_bound (stor, stor->cell_diagonal (), DIM);
+        inter.notify_error_bound (stor, stor->cell_diagonal ());
 
         vector <DIM> r = zero_vector <DIM> ();
 

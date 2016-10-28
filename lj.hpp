@@ -126,13 +126,12 @@ struct LennardJones : public Interaction
 
     ParetoProber prober;
 
-    void notify_error_bound (const AbstractStorage *,
-        double err_bound, size_t DIM)
+    void notify_error_bound (const AbstractStorage *stor, double err_bound)
     {
         if (prober.error_bound != err_bound)
         {
             prober.error_bound = err_bound;
-            prober.setup (sr_lr_split * scale, 6., DIM);
+            prober.setup (sr_lr_split * scale, 6., stor->dimension ());
             std::cerr << "total_probe_rate " << total_probe_rate (0) << "\n";
         }
     }

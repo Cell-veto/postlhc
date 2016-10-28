@@ -91,9 +91,8 @@ struct Jellium3 : JelliumInteraction
         prober[direction].calib_finish (DIM);
     }
 
-    // FIXME remove DIM parameter
     void notify_error_bound (const AbstractStorage *stor,
-        double err_bound, size_t /* DIM */)
+        double err_bound)
     {
         const unsigned DIM = stor->dimension ();
 

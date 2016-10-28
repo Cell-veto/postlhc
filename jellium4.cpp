@@ -228,9 +228,9 @@ struct Jellium4 : JelliumInteraction
     }
 
     void notify_error_bound (const AbstractStorage *stor,
-        double err_bound, size_t DIM_)
+        double err_bound)
     {
-        if (DIM_ != DIM)
+        if (stor->dimension () != DIM)
             std::cerr << "Wrong dimension in Jellium4" << ABORT;
         if (error_bound == err_bound && periods == stor->periods ())
             return;
