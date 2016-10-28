@@ -382,15 +382,17 @@ if __name__ == "__main__":
         # coherent g(r), see http://dx.doi.org/10.1103/PhysRevLett.107.155704
         if cohgofr_out != '':
             interp = RectBivariateSpline (x, y, c_corr)
-            psi6 = compute ('psi6')
+            angular = 6
+            scan_angle_incr = 360. / angular
+            psi6 = compute ('psi%i' % angular)
             cur_angle = np.angle (np.mean (psi6[:N]))
             r = np.arange (0., c_rmax, discret)
             cohgofr = [ r ]
-            for scan_angle in (math.pi/2, math.pi/6., -math.pi/6):
+            for scan_angle in np.arange (angular//2) * (math.pi/180.*scan_angle_incr):
                  c, s = cossin (scan_angle)
                  cg = interp.ev (c*r, s*r)
                  cohgofr.append (cg)
             fp = open (cohgofr_out, 'w')
-            fp.write ('# coherent g(x,y), aligned with psi6, along three scan directions in 60 degree increments\n')
+            fp.write ('# coherent g(x,y), aligned with psi%(angular)i, along three scan directions in %(scan_angle_incr).1f degree increments\n' % locals ())
             np.savetxt (fp, np.transpose (cohgofr))
             fp.close ()
