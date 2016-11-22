@@ -213,16 +213,13 @@ int main (int, const char **argv)
     cr->collide (stor, 10.);
     unsigned jmany = 1, gofr_samples = 1;
     for (; snap != snap_target; ++snap)
+    while (jmany == 1)
     {
         for (unsigned j = 0; !sigterm_caught () && j != jmany; ++j)
         {
             cr->collide (stor, 1.);
             if (gofr) gofr->sample (stor, gofr_samples);
         }
-
-        // first iteration was quicker for testing
-        jmany = snap_disp;
-        gofr_samples = 1000;
 
         stor->dump_report (std::cerr);
         cr->dump_report (std::cerr);
@@ -239,6 +236,10 @@ int main (int, const char **argv)
             std::cerr << "exit caught SIGTERM, exiting\n";
             return 1;
         }
+
+        // now for real
+        jmany = snap_disp;
+        gofr_samples = 1000;
     }
 
     std::cerr << "exit number of snapshots reached\n";
