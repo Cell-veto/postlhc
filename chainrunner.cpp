@@ -31,6 +31,8 @@ void AbstractChainRunner::dump_report (std::ostream &os) const
     os << "walltime " << walltime*1e-6 << " seconds\n";
     os << "num_events total " << total_lifts
         << " lr " << longrange_lifts << "\n";
+    os << "perf_stat events_per_hour "
+        << fdivide (total_lifts, walltime*1e-6) * 3600. << "\n";
     os << "predict lr " << longrange_predicts
         << " sr " << shortrange_predicts << "\n";
     os << "disp " << total_disp

@@ -394,7 +394,7 @@ public:
         for (unsigned n = 0; n != DIM; ++n)
             bc_[n] = 4;
         bc_[0] = 3;
-        bc_[DIM] = 3;
+        bc_[DIM] = 4;
         subdivide (true);
     }
 

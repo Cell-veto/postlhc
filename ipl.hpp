@@ -17,7 +17,7 @@ struct PowerLawInteraction : Interaction
         gamma = 1.;
         // sr_lr_split = cutoff for a truncated IPL.  otherwise, it's the
         // handshake distance between probing events and direct enumeration.
-        sr_lr_split = 3.8;
+        sr_lr_split = 5.8;
 
         // built-in self-test, will leave exponent at 32 at the end
         double rsq_list[] = { 1e-6, 1e-2, 1., 1e2, 1e6 };
