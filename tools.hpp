@@ -29,6 +29,8 @@ void shell (string_ref command);
 
 // return true if the file exists and could probably be read
 bool file_is_readable (string_ref path);
+void rename_file (string_ref old_path, string_ref new_path);
+bool remove_file (string_ref path, bool ignore_failure);
 
 string hostname ();
 

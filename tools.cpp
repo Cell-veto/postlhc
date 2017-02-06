@@ -51,6 +51,27 @@ bool file_is_readable (string_ref path)
     return !! (stat_result.st_mode & S_IRUSR);
 }
 
+void rename_file (string_ref old_name, string_ref new_name)
+{
+    if (::rename (old_name.c_str (), new_name.c_str ()) != 0)
+    {
+        rt_error ("rename " + old_name + " -> " + new_name + " failed");
+    }
+}
+
+bool remove_file (string_ref path, bool ignore_failure)
+{
+    if (::unlink (path.c_str ()) != 0 && !ignore_failure)
+    {
+        rt_error ("unlink failed for " + path);
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 #ifndef HOST_NAME_MAX
 // for MacOS. 255 is the limit according to POSIX.
 #define HOST_NAME_MAX 255

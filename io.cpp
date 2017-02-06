@@ -168,7 +168,7 @@ void save_data (string_ref filename, AbstractParticleGenerator &source, bool tag
 {
     if (ends_with (filename, ".dat"))
     {
-        std::ofstream ofs (filename);
+        std::ofstream ofs (filename + ".tmp");
         ofs.precision (15);
 
         try
@@ -184,8 +184,12 @@ void save_data (string_ref filename, AbstractParticleGenerator &source, bool tag
         }
         catch (IoError)
         {
-            rt_error ("error writing to file " + filename);
+            // try to unlink temporary file if writing failed
+            remove_file (filename + ".tmp", true);
+            rt_error ("error writing to file " + filename + ".tmp");
         }
+
+        rename_file (filename + ".tmp", filename);
     }
     else
     {
