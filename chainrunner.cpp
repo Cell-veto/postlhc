@@ -28,6 +28,7 @@ void AbstractChainRunner::reset_statistics ()
 
 void AbstractChainRunner::dump_report (std::ostream &os) const
 {
+    os.precision (15);
     os << "walltime " << walltime*1e-6 << " seconds\n";
     os << "num_events total " << total_lifts
         << " lr " << longrange_lifts << "\n";
