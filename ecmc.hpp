@@ -159,7 +159,7 @@ struct ChainRunner : public AbstractChainRunner
         stor_t *stor = downcast (stor_);
         double chexp = measure_chain_expansion (stor, 0);
         double Lmax = stor->periods ().max ();
-        calib_constant = Lmax / chexp;
+        calib_constant = Lmax / chexp / 2;
     }
 
     virtual
