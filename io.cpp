@@ -44,13 +44,10 @@ struct IoError {};
 static
 MostGeneralParticle parse_line_from_file (unsigned no, string_ref line)
 {
-    if (MAX_DIM > 3u)
-        std::cerr << "DIM>3 is not implemented" << ABORT;
-
     // read columns
     std::vector <string> cs = string_split (line);
-    if (cs.size () > MAX_DIM)
-        rt_error ("too many columns");
+    if (cs.size () != 2 && cs.size () != 3 && cs.size () != 6)
+        rt_error ("wrong number of columns in snapshot");
     double cd[6] = { 0 };
     for (size_t n = 0; n != cs.size (); ++n)
     {
