@@ -38,6 +38,14 @@ FFT_MAX_CELLS = FFT_MEM_LIMIT / 8
 def die (why):
     raise RuntimeError (why)
 
+def read_flag (which):
+    try:
+        idx = sys.argv.index (which)
+    except ValueError:
+        return False
+    del sys.argv[idx]
+    return True
+
 def read_arg (which, default):
     try:
         idx = sys.argv.index (which)
@@ -320,6 +328,8 @@ if __name__ == "__main__":
     corr_field_png_out = read_arg ('corrpng', '')
     corr_radial_out = read_arg ('corr', '')
     cohgofr_out = read_arg ('cohgofr', '')
+    cohgofr_angular = int (read_arg ('cohgofr_angular', '6'))
+    debug_cohgofr = read_flag ('debug_cohgofr')
 
     if dat_out + png_out + gnuplot_out + corr_field_out + corr_radial_out + corr_field_png_out + cohgofr_out == '':
         die ('no output, master?')
@@ -370,29 +380,41 @@ if __name__ == "__main__":
             l,h = c_center-100, c_center+100
             export = c_corr[l[0]:h[0],l[1]:h[1]]
             np.savetxt (corr_field_out, export)
-        print x.shape, y.shape, c_corr.shape
+        print 'shapes', x.shape, y.shape, c_corr.shape
         r, rad_corr  = radial_profile (x, y, c_corr, lencell, discret)
         if corr_radial_out != '':
             np.savetxt (corr_radial_out, zip (r, rad_corr))
+        # coherent g(r), see http://dx.doi.org/10.1103/PhysRevLett.107.155704
+        if cohgofr_out != '':
+            mark_scanline = 5 * np.max (np.abs (c_corr))
+            num_scan_angles = cohgofr_angular // 2
+            scan_angle_incr = 2 * math.pi / cohgofr_angular
+            scan_angle_incr_deg = 360. / cohgofr_angular
+            interp = RectBivariateSpline (x, y, c_corr)
+            order_par = np.mean (compute ('psi%i' % cohgofr_angular)[:N])
+            detected_ori = np.angle (order_par) / cohgofr_angular
+            detected_ori_deg = 180. / math.pi * detected_ori
+            print 'detected_ori_deg', detected_ori_deg
+            r = np.arange (0., c_rmax, discret)
+            r_dotted = r[::100]
+            cohgofr = [ r ]
+            for scan_angle in detected_ori + scan_angle_incr * np.arange (num_scan_angles):
+                 c, s = cossin (scan_angle)
+                 cg = interp.ev (c*r, s*r)
+                 cohgofr.append (cg)
+                 if debug_cohgofr:
+                     for ii,jj in zip (c*r_dotted, s*r_dotted):
+                         ii = int (ii/lencell[0] + c_center[0] + .5)
+                         jj = int (jj/lencell[1] + c_center[1] + .5)
+                         if 0 <= ii < c_corr.shape[0]:
+                             if 0 <= jj < c_corr.shape[1]:
+                                 c_corr[ii,jj] = mark_scanline
+            fp = open (cohgofr_out, 'w')
+            fp.write ('# coherent g(x,y), aligned with psi%(cohgofr_angular)i, along %(num_scan_angles)i scan directions in %(scan_angle_incr_deg).1f degree increments\n# sample orient %(detected_ori).4f %(detected_ori_deg).4f\n' % locals ())
+            np.savetxt (fp, np.transpose (cohgofr))
+            fp.close ()
         if corr_field_png_out != '':
             field = c_corr / np.max (np.abs (c_corr))
             field = np.clip (field, 0., 1.)
             field = np.power (field, .4)
             save_real_field_png (corr_field_png_out, field)
-        # coherent g(r), see http://dx.doi.org/10.1103/PhysRevLett.107.155704
-        if cohgofr_out != '':
-            interp = RectBivariateSpline (x, y, c_corr)
-            angular = 6
-            scan_angle_incr = 360. / angular
-            psi6 = compute ('psi%i' % angular)
-            cur_angle = np.angle (np.mean (psi6[:N]))
-            r = np.arange (0., c_rmax, discret)
-            cohgofr = [ r ]
-            for scan_angle in np.arange (angular//2) * (math.pi/180.*scan_angle_incr):
-                 c, s = cossin (scan_angle)
-                 cg = interp.ev (c*r, s*r)
-                 cohgofr.append (cg)
-            fp = open (cohgofr_out, 'w')
-            fp.write ('# coherent g(x,y), aligned with psi%(angular)i, along three scan directions in %(scan_angle_incr).1f degree increments\n' % locals ())
-            np.savetxt (fp, np.transpose (cohgofr))
-            fp.close ()
