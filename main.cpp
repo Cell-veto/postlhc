@@ -29,6 +29,7 @@ int main (int, const char **argv)
     double snap_disp = 100;
     unsigned long random_seed = 42;
     unsigned long snap_target = 100000;
+    long recover_from = -1;
 
     // parse command line, initializing our tools along the way
     for (++argv; *argv; argv += 2)
@@ -69,6 +70,11 @@ int main (int, const char **argv)
         {
             recover = true;
             --argv; // no argument
+        }
+        else if (kw == "recover_from")
+        {
+            recover_from = static_cast <long> (read_arg <unsigned long> (argv));
+            recover = true;
         }
         else if (kw == "skip_calib")
         {
@@ -144,15 +150,37 @@ int main (int, const char **argv)
     stor->load_periods (in_prefix + "periods");
     unsigned snap = 0;
     string in_filename = in_prefix + "coords.dat";
-    if (recover)
+    if (recover_from != -1)
     {
-        // find the first snapshot which is _not_ on disk
+        // check if final snapshot exists already
         if (file_is_readable (format_out (prefix, snap_target)))
         {
             std::cerr << "recover: the final target snapshot already exists.  exiting.\n";
             return 0;
         }
 
+        if (file_is_readable (format_out (prefix, recover_from)))
+        {
+            snap = recover_from + 1u;
+            std::cerr << "recover: attempting to load snapshot " << (snap-1u) << "\n";
+            in_filename = format_out (prefix, snap-1u);
+        }
+        else
+        {
+            std::cerr << "recover snapshot not found; aborting\n";
+            return -1;
+        }
+    }
+    else if (recover)
+    {
+        // check if final snapshot exists already
+        if (file_is_readable (format_out (prefix, snap_target)))
+        {
+            std::cerr << "recover: the final target snapshot already exists.  exiting.\n";
+            return 0;
+        }
+
+        // find the first snapshot which is _not_ on disk
         if (file_is_readable (format_out (prefix, 0)))
         {
             // bisection-style algorithm
