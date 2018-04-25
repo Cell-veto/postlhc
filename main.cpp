@@ -212,8 +212,11 @@ int main (int, const char **argv)
     if (write_gofr)
         gofr = make_correlator ("density", stor, 0.01, 0.);
 
-    stor->periods ().savetxt (prefix + "periods");
-    stor->save_data (prefix + "init-coords.dat");
+    if (!recover)
+    {
+        stor->periods ().savetxt (prefix + "periods");
+        stor->save_data (prefix + "init-coords.dat");
+    }
 
     // init chainrunner
     std::cerr << "inter " << inter << '\n';
