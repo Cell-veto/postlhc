@@ -29,7 +29,7 @@
 // minimum of LJ potential
 static constexpr double LJ_MINIMUM = 1.122462048309373;
 
-struct LennardJones : public Interaction
+struct LennardJones : Interaction
 {
     LennardJones ()
     {
