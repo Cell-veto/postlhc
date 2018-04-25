@@ -314,7 +314,7 @@ private:
 };
 
 template <typename CONCRETE>
-class Register : public Factory <typename CONCRETE::abstract_t>
+class Register : Factory <typename CONCRETE::abstract_t>
 {
     typedef typename CONCRETE::abstract_t abstract_t;
 public:

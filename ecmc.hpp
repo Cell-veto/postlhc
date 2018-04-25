@@ -101,7 +101,7 @@ struct Interaction
 };
 
 template <typename INTERACT, typename ENCODING>
-struct ChainRunner : public AbstractChainRunner
+struct ChainRunner : AbstractChainRunner
 {
     typedef INTERACT inter_t;
     typedef ENCODING encoding_t;
