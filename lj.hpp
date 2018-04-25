@@ -1,4 +1,4 @@
-// (c) 2015-2016 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
+// (c) 2015-2018 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
 // LJ interactions.
 #ifndef LENNARD_JONES_INCLUDED 
 #define LENNARD_JONES_INCLUDED 
@@ -41,7 +41,7 @@ struct LennardJones : Interaction
 
     double strength;
     double sr_lr_split, scale, cutoff;
-    double rep_cutoff, attr_cutoff, lj_at_cutoff;
+    double rep_cutoff, attr_cutoff, lj_at_cutoff, probe_prefactor;
 
     void set_parameter (string name, double value)
     {
@@ -63,6 +63,11 @@ struct LennardJones : Interaction
         rep_cutoff  = fmin (LJ_MINIMUM, cutoff, sr_lr_split);
         attr_cutoff = fmin (cutoff, sr_lr_split);
         lj_at_cutoff = evaluate_lj (sq (attr_cutoff));
+        if (sr_lr_split > cutoff)
+            probe_prefactor = 0.;
+        else
+            probe_prefactor = strength * 6.0001 * pow6 (scale)
+                * fmax (1, fabs (2 / pow6 (sr_lr_split) - 1));
     }
 
     double sr_repulsion_range () const
@@ -136,23 +141,15 @@ struct LennardJones : Interaction
         }
     }
 
-    double probe_pref () const
-    {
-        return strength * 6. * pow6 (scale) * 5.;
-    }
-
     double total_probe_rate (unsigned /* direction */) const
     {
-        if (sr_lr_split > cutoff)
-            return 0.;
-        else
-            return probe_pref () * prober.total_probe_rate ();
+        return probe_prefactor * prober.total_probe_rate ();
     }
 
     template <typename VECTOR>
     double probe_rate (const VECTOR &r, size_t direction)
     {
-        return probe_pref () * prober.probe_rate (r, direction);
+        return probe_prefactor * prober.probe_rate (r, direction);
     }
 
     template <typename VECTOR>
@@ -175,7 +172,7 @@ struct LennardJones : Interaction
     template <typename VECTOR>
     double random_probe (VECTOR *ret, unsigned, RandomContext *random)
     {
-        return probe_pref () * prober.random_probe (ret, random);
+        return probe_prefactor * prober.random_probe (ret, random);
     }
 };
 
