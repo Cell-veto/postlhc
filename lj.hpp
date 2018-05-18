@@ -66,6 +66,9 @@ struct LennardJones : Interaction
         else
             rt_error ("Invalid parameter: " + name);
 
+        // after changing any parameters, the prober _must_ be re-initialized.
+        prober.clear ();
+
         // precompute some interesting quantities
         rep_cutoff  = fmin (LJ_MINIMUM, cutoff, sr_lr_split);
         attr_cutoff = fmin (cutoff, sr_lr_split);

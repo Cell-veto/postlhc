@@ -30,6 +30,7 @@ int main (int, const char **argv)
     unsigned long random_seed = 42;
     unsigned long snap_target = 100000;
     long recover_from = -1;
+    bool dont_optimize_sr_lr_split = false;
 
     // parse command line, initializing our tools along the way
     for (++argv; *argv; argv += 2)
@@ -117,6 +118,13 @@ int main (int, const char **argv)
             }
             else
                 rt_error ("First set interaction type with keyword inter");
+        }
+        else if (kw == "sr_lr_split")
+        {
+            // we don't want a subdirectory for this parameter.
+            double value = read_arg <double> (argv);
+            cr->set_parameter (kw, value);
+            dont_optimize_sr_lr_split = true;
         }
         else
         {
@@ -233,6 +241,11 @@ int main (int, const char **argv)
     {
         cr->probe_test_pattern (stor);
         return 0;
+    }
+
+    if (inter == "lj" && !dont_optimize_sr_lr_split)
+    {
+        cr->optimize_sr_lr_split (stor);
     }
 
     if (!skip_calib)

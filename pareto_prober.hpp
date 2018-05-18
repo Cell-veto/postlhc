@@ -6,7 +6,7 @@ struct ParetoProber
 {
     ParetoProber ()
     {
-        error_bound = 0.;
+        clear ();
     }
 
     double error_bound;
@@ -71,8 +71,14 @@ public:
         once = false;
     }
 
+    void clear ()
+    {
+        error_bound = -1.;
+    }
+
     double total_probe_rate () const
     {
+        assert (error_bound > 0.);
         return total_pr;
     }
 
@@ -80,6 +86,7 @@ public:
     template <size_t DIM>
     double random_probe (vector <DIM> *ret, RandomContext *random)
     {
+        assert (error_bound > 0.);
         double tow = random->real (total_pr);
 
         // the long-range part is split up into DIM pareto's since we need
@@ -102,6 +109,7 @@ public:
     template <size_t DIM>
     double probe_rate (const vector <DIM> &dist, unsigned direction)
     {
+        assert (error_bound > 0.);
         (void)direction;  // not used, we sample azimuth uniformly
         double r = norm (dist);
         double s = fmax (zeroshell_radius, r);

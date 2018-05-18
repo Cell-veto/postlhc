@@ -153,6 +153,62 @@ struct ChainRunner : AbstractChainRunner
         AbstractChainRunner::set_parameter (name, value);
     }
 
+    uint64_t time_for_collisions (stor_t *stor, double sr_lr_split, int num_samples)
+    {
+        set_parameter ("sr_lr_split", sr_lr_split);
+        inter.notify_random_context (&random);
+        inter.notify_error_bound (stor, stor->cell_diagonal ());
+
+        uint64_t start_time = gclock ();
+
+        direction = 0;
+        disp_left = stor->periods ()[0];
+
+        for (int n = 0; n != num_samples; ++n)
+        {
+            planned_next = active = stor->random_particle (&random);
+            planned_disp = disp_left;
+            planned_xdisp = 0.;
+
+            find_sr_events (stor);
+            find_lr_events (stor);
+        }
+
+        uint64_t end_time = gclock ();
+        std::cerr << "info optimizing sr_lr_split " << sr_lr_split << " " << (end_time-start_time) << " usec\n";
+        return end_time - start_time;
+    }
+
+    virtual
+    void optimize_sr_lr_split (AbstractStorage *stor_)
+    {
+        stor_t *stor = downcast (stor_);
+
+        const int num_samples = 1000;
+        double try_splits[] = {  2.1,  1.6,  1.7,  2.3,  2.9,  1.8,  1.5,  3.6,
+            0.8,  3.9,  3.5, 0.9,  3.4,  2. ,  1.2,  1.4,  1.9,  3.1,  3.7,  3.,
+            3.3,  2.4, 2.2,  2.5,  2.8,  2.7,  1. ,  0.6,  0.7,  3.2,  1.3,  3.8,
+            2.6, 1.1 };
+
+        uint64_t smallest_time_so_far = time_for_collisions (stor, try_splits[0], num_samples);
+        int best_split_so_far = 0;
+
+        const int num_splits = sizeof(try_splits) / sizeof (try_splits[0]);
+
+        for (int i = 1; i != num_splits; ++i)
+        {
+            uint64_t time_now = time_for_collisions (stor, try_splits[i], num_samples);
+            if (time_now < smallest_time_so_far)
+            {
+                smallest_time_so_far = time_now;
+                best_split_so_far = i;
+            }
+        }
+
+        std::cerr << "info best sr_lr_split " << try_splits[best_split_so_far] <<"\n";
+        set_parameter ("sr_lr_split", try_splits[best_split_so_far]);
+    }
+
     virtual
     void calibrate (AbstractStorage *stor_)
     {

@@ -880,6 +880,7 @@ struct AbstractChainRunner : FactoryProduct <AbstractChainRunner>
     virtual void set_parameter (string_ref name, double value);
     virtual void reset_statistics ();
     virtual void dump_report (std::ostream &) const;
+    virtual void optimize_sr_lr_split (AbstractStorage *) = 0;
     virtual void calibrate (AbstractStorage *) = 0;
             void collide (AbstractStorage *, double disp_per_particle);
     virtual void probe_test_pattern (AbstractStorage *, unsigned direction = 0) = 0;
