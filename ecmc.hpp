@@ -316,15 +316,10 @@ struct ChainRunner : AbstractChainRunner
                 double qevent = inter.lr_event_rate (r, direction);
                 if (! (qevent <= qselect))
                 {
-#if 0
-                    std::cerr << r << " " << " ERRORQ\n" << std::flush;
-                    qselect = qevent;
-#else
                     std::cerr << "fatal: event rate is higher than probe rate\n"
                         << "qevent " << qevent << " qselect " << qselect << "\n"
                         << "direction " << direction << "\n"
                         << "distance " << r << " = " << norm (r) << "\n" << ABORT;
-#endif
                 }
 
                 double paccept = qevent/qselect;
