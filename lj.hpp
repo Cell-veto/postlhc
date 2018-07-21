@@ -29,6 +29,13 @@
 // minimum of LJ potential
 static constexpr double LJ_MINIMUM = 1.122462048309373;
 
+inline
+double pow6 (double x)
+{
+    x *= x;
+    return x*x*x;
+}
+
 struct LennardJones : Interaction
 {
     LennardJones ()

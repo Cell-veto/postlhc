@@ -62,13 +62,6 @@ double sq (double x)
 }
 
 inline
-double pow6 (double x)
-{
-    x *= x;
-    return x*x*x;
-}
-
-inline
 double fdivide (double x, double y)
 {
     return x / y;
