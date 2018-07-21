@@ -120,6 +120,7 @@ void redirect_cout (string_ref filename, bool append)
 
 // argument helpers
 
+static
 std::pair <string, string> int_pop_arg (const char **argv)
 {
     assert (*argv);
