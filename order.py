@@ -343,10 +343,15 @@ if __name__ == "__main__":
     order = compute (order_name)
 
     # save as a two-column text file, col1 = real part, col2 = imag part
+    # we don't output data for the padding points.
+    # we don't output the second column for real data.
     if dat_out != '':
-        re = np.real (order)
-        im = np.imag (order)
-        np.savetxt (dat_out, zip (re, im))
+        if order.dtype == np.complex128:
+            re = np.real (order[:N])
+            im = np.imag (order[:N])
+            np.savetxt (dat_out, zip (re, im))
+        else:
+            np.savetxt (dat_out, order[:N])
 
     # save as either a color-coded (HSV) .png or as a greenscale .png
     if png_out != '':
