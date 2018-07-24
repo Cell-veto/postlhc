@@ -315,6 +315,8 @@ def grid_and_save_field_png (filename, values, resolu):
         # griddata doesn't do complex
         gridded = togrid (np.real (values)) + 1j * togrid (np.imag (values))
         save_complex_field_png (filename, gridded)
+    elif values.dtype == np.int:
+        die ('integer field not implemented for PNG output')
     else:
         gridded = togrid (values)
         save_real_field_png (filename, gridded)
@@ -325,7 +327,7 @@ def compute (what):
         angular = int (what[3:])
         setup_voronoi ()
         MT = [ np.dot (np.power (n, angular), w) for (n, w) in normals_and_weights (voro) ]
-        return MT
+        return np.asarray (MT)
     elif what == 'rho':
         return np.ones (N)
     elif what == 'Z':
@@ -338,13 +340,14 @@ def compute (what):
     elif what == 'voronoi_volume':
         # obserable pinned to each particle is the Voronoï cell volume.
         setup_voronoi ()
-        return np.array ([ a for a in areas (voro) ])
+        Vc = np.array ([ a for a in areas (voro) ])
+        return np.asarray (Vc)
     elif what == 'voronoi_density':
         # obserable pinned to each particle is the local density, defined as
         # 1/Vc where Vc is the Voronoï cell volume.
         setup_voronoi ()
-        A = np.array ([ a for a in areas (voro) ])
-        return A**-1
+        Vc = np.array ([ a for a in areas (voro) ])
+        return np.power (Vc, -1.)
     else:
         die ('unknown order parameter: %s' % what)
 
