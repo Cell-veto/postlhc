@@ -76,8 +76,9 @@ def load_coords (filename):
         raise
     return data[:,:2]
 
-def normals_and_weights (diagr):
+def normals_and_weights ():
     """compute normals and the associated weights from a Voronoï diagram"""
+    diagr = setup_voronoi ()
     # represent vertices by complex numbers
     vert = diagr.vertices[:,0] + 1.j*diagr.vertices[:,1]
     rot90 = -1.j
@@ -96,8 +97,9 @@ def polygon_area (x,y):
     # https://stackoverflow.com/a/30408825
     return 0.5 * np.abs (np.dot (x, np.roll (y,1)) - np.dot (y, np.roll (x,1)))
 
-def areas (diagr):
-    """compute areas Voronoï diagram"""
+def cell_areas ():
+    """compute cell areas in the Voronoï diagram"""
+    diagr = setup_voronoi ()
     # represent vertices by complex numbers
     vert = diagr.vertices[:,0] + 1.j*diagr.vertices[:,1]
     for i in xrange (len (diagr.points)):
@@ -291,12 +293,12 @@ def setup_padding (min_overlap, rot_angle = 0.):
 def setup_voronoi ():
     global voro
     if voro is not None:
-        return
+        return voro
     setup_padding (10*dee)
     while True:
         voro = qhull.Voronoi (padded_coords)
         # FIXME check no boundary vertices are touched
-        return
+        return voro
 
 def grid_and_save_field_png (filename, values, resolu):
     pixX = np.arange (.5, resolu+.5) / resolu * periods[0]
@@ -325,8 +327,7 @@ def compute (what):
     if what[0:3] == 'psi':
         # Minkowski structure metrics, see http://dx.doi.org/10.1063/1.4774084
         angular = int (what[3:])
-        setup_voronoi ()
-        MT = [ np.dot (np.power (n, angular), w) for (n, w) in normals_and_weights (voro) ]
+        MT = [ np.dot (np.power (n, angular), w) for (n, w) in normals_and_weights () ]
         return np.asarray (MT)
     elif what == 'rho':
         return np.ones (N)
@@ -334,19 +335,16 @@ def compute (what):
         # (Voronoi) coordination number.
         # Z is an integer, and most outputs don't now what to do with that.
         # "dat" output works, though.
-        setup_voronoi ()
-        Z = [ len (n) for (n, w) in normals_and_weights (voro) ]
+        Z = [ len (n) for (n, w) in normals_and_weights () ]
         return np.asarray (Z)
     elif what == 'voronoi_volume':
         # obserable pinned to each particle is the Voronoï cell volume.
-        setup_voronoi ()
-        Vc = np.array ([ a for a in areas (voro) ])
+        Vc = np.array ([ a for a in cell_areas () ])
         return np.asarray (Vc)
     elif what == 'voronoi_density':
         # obserable pinned to each particle is the local density, defined as
         # 1/Vc where Vc is the Voronoï cell volume.
-        setup_voronoi ()
-        Vc = np.array ([ a for a in areas (voro) ])
+        Vc = np.array ([ a for a in cell_areas () ])
         return np.power (Vc, -1.)
     else:
         die ('unknown order parameter: %s' % what)
