@@ -76,15 +76,12 @@ def load_coords (filename):
         raise
     return data[:,:2]
 
-def normals_and_weights (diagr, relev = None):
+def normals_and_weights (diagr):
     """compute normals and the associated weights from a Voronoï diagram"""
     # represent vertices by complex numbers
     vert = diagr.vertices[:,0] + 1.j*diagr.vertices[:,1]
     rot90 = -1.j
-    # unless cutoff is specified, return data for all points
-    if not relev:
-        relev = len (diagr.points)
-    for i in range (relev):
+    for i in xrange (len (diagr.points)):
         reg = diagr.regions[diagr.point_region[i]]
         pnt = vert[reg]
         avg = np.mean (pnt)
@@ -99,14 +96,11 @@ def polygon_area (x,y):
     # https://stackoverflow.com/a/30408825
     return 0.5 * np.abs (np.dot (x, np.roll (y,1)) - np.dot (y, np.roll (x,1)))
 
-def areas (diagr, relev = None):
+def areas (diagr):
     """compute areas Voronoï diagram"""
     # represent vertices by complex numbers
     vert = diagr.vertices[:,0] + 1.j*diagr.vertices[:,1]
-    # unless cutoff is specified, return data for all points
-    if not relev:
-        relev = len (diagr.points)
-    for i in xrange (relev):
+    for i in xrange (len (diagr.points)):
         reg = diagr.regions[diagr.point_region[i]]
         pnt = vert[reg]
         yield polygon_area (pnt.real, pnt.imag)
