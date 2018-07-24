@@ -198,7 +198,7 @@ struct Jellium4 : JelliumInteraction
             auto it = cell_grid.begin (), it_end = cell_grid.end ();
             for (; it != it_end; ++it)
             {
-                vector_t cell_vector = elementwise_prod (cwid, *it);
+                vector_t cell_vector = elementwise_product (cwid, *it);
                 int discret = (norm (cell_vector) < 2 * sr_lr_split) ? 50 : 6;
                 GridIndices <DIM> discret_grid = GridIndices <DIM> (-discret, discret+1);
 
@@ -207,7 +207,7 @@ struct Jellium4 : JelliumInteraction
                 auto iit = discret_grid.begin (), iit_end = discret_grid.end ();
                 for (; iit != iit_end; ++iit)
                 {
-                    vector_t dr = elementwise_prod (cwid, *iit) / discret;
+                    vector_t dr = elementwise_product (cwid, *iit) / discret;
                     double er = lr_event_rate (cell_vector + dr, direction);
                     update_max (&max_event_rate_found, er);
                 }

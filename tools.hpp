@@ -1,7 +1,6 @@
-// (c) 2015-2016 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
+// (c) 2015-2018 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
 // various utilities.
-#ifndef TOOLS_HPP_INCLUDED 
-#define TOOLS_HPP_INCLUDED 
+#pragma once
 
 #include <array>
 #include <cassert>
@@ -14,10 +13,34 @@
 #include <map>
 #include <random>
 #include <string>
+#include "vector.hpp"
 #include "ts.mk.hpp"
 
 using std::string;
 typedef const string &string_ref;
+
+template <size_t DIM>
+using vector = std::array <double, DIM>;
+// import utility operators
+using namespace vector_math_for_std_array;
+using namespace vector_printing_for_std_array;
+
+template <size_t DIM>
+std::array <double, DIM> zero_vector ()
+{
+    std::array <double, DIM> ret;
+    for (size_t n = 0; n != DIM; ++n)
+        ret[n] = 0.;
+    return ret;
+}
+
+template <size_t DIM>
+std::array <double, DIM> unit_vector (size_t nz)
+{
+    std::array <double, DIM> ret = zero_vector <DIM> ();
+    ret[nz] = 1.;
+    return ret;
+}
 
 // return a microsecond-precision timestamp
 uint64_t gclock ();
@@ -65,125 +88,6 @@ inline
 double fdivide (double x, double y)
 {
     return x / y;
-}
-
-
-// vector math
-
-template <size_t DIM>
-using vector = std::array <double, DIM>;
-
-template <size_t DIM>
-vector <DIM> zero_vector ()
-{
-    vector <DIM> ret;
-    for (size_t n = 0; n != DIM; ++n)
-        ret[n] = 0.;
-    return ret;
-}
-
-template <size_t DIM>
-vector <DIM> unit_vector (size_t nz)
-{
-    vector <DIM> ret = zero_vector <DIM> ();
-    ret[nz] = 1.;
-    return ret;
-}
-
-template <size_t DIM>
-vector <DIM> operator+ (const vector <DIM> &lhs, const vector <DIM> &rhs)
-{
-    vector <DIM> ret;
-    for (size_t n = 0; n != DIM; ++n)
-        ret[n] = lhs[n] + rhs[n];
-    return ret;
-}
-
-template <size_t DIM>
-vector <DIM> operator- (const vector <DIM> &lhs, const vector <DIM> &rhs)
-{
-    vector <DIM> ret;
-    for (size_t n = 0; n != DIM; ++n)
-        ret[n] = lhs[n] - rhs[n];
-    return ret;
-}
-
-template <size_t DIM, typename VECTOR2>
-vector <DIM> &operator*= (vector <DIM> &lhs, const VECTOR2 &rhs)
-{
-    for (size_t n = 0; n != DIM; ++n)
-        lhs[n] *= rhs[n];
-    return lhs;
-}
-
-template <size_t DIM>
-vector <DIM> &operator*= (vector <DIM> &lhs, const double &rhs)
-{
-    for (size_t n = 0; n != DIM; ++n)
-        lhs[n] *= rhs;
-    return lhs;
-}
-
-template <size_t DIM, typename VECTOR2>
-vector <DIM> operator* (const vector <DIM> &lhs, const VECTOR2 &rhs)
-{
-    vector <DIM> ret = lhs;
-    return ret *= rhs;
-}
-
-template <size_t DIM>
-vector <DIM> operator* (const double &lhs, const vector <DIM> &rhs)
-{
-    vector <DIM> ret = rhs;
-    return ret *= lhs;
-}
-
-template <size_t DIM>
-vector <DIM> operator/ (const vector <DIM> &lhs, double rhs)
-{
-    vector <DIM> ret;
-    double scale = 1./rhs;
-    for (size_t n = 0; n != DIM; ++n)
-        ret[n] = lhs[n] * scale;
-    return ret;
-}
-
-template <size_t DIM>
-double inner (const vector <DIM> &lhs, const vector <DIM> &rhs)
-{
-    double ret = lhs[0]*rhs[0];
-    for (size_t n = 1; n != DIM; ++n)
-        ret += lhs[n]*rhs[n];
-    return ret;
-}
-
-template <size_t DIM, typename TYPE2>
-vector <DIM> elementwise_prod (const vector <DIM> &lhs, const TYPE2 &rhs)
-{
-    vector <DIM> ret;
-    for (size_t n = 0; n != DIM; ++n)
-        ret[n] = lhs[n]*rhs[n];
-    return ret;
-}
-
-template <size_t DIM>
-double norm_sq (const vector <DIM> &v)
-{
-    return inner (v, v);
-}
-
-template <size_t DIM>
-double norm (const vector <DIM> &v)
-{
-    return sqrt (norm_sq (v));
-}
-
-template <size_t DIM>
-std::ostream &operator<< (std::ostream &os, const vector <DIM> &rhs)
-{
-    for (unsigned n = 0; n != DIM-1; ++n)
-        os << rhs[n] << ' ';
-    return os << rhs[DIM-1];
 }
 
 // misc small utilities
@@ -420,5 +324,3 @@ public:
         return num_sampl_;
     }
 };
-
-#endif /* TOOLS_HPP_INCLUDED */
