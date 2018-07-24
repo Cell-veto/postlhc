@@ -1,10 +1,12 @@
-// (c) 2015-2016 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
+// (c) 2015-2018 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
 // various utilities.
 #include "tools.hpp"
 #include <cstdlib>
 #include <signal.h>
 #include <fstream>
 #include <stdexcept>
+#include <iomanip>
+#include <sstream>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -104,17 +106,43 @@ std::ostream &operator<< (std::ostream &os, const AbortObject &)
     std::abort ();
 }
 
-static std::ofstream cout_logfile;
+static std::ostringstream cerr_buffer;
+static std::ofstream cerr_logfile;
+static std::ostream original_cerr_stream (0);
 
-void redirect_cout (string_ref filename, bool append)
+void buffer_cerr ()
+{
+    // save the original stream buffer in case we need to restore it
+    original_cerr_stream.rdbuf (std::cerr.rdbuf ());
+    // redirect cerr to cerr_buffer
+    std::cerr.rdbuf (cerr_buffer.rdbuf ());
+}
+
+void redirect_cerr (string_ref filename, bool append)
 {
     std::ios::openmode mode = std::ios::out;
     if (append)
         mode |= std::ios::app;
-    cout_logfile.open (filename, mode);
-    if (!cout_logfile)
-        rt_error ("error opening logfile" + filename);
-    std::cerr.rdbuf (cout_logfile.rdbuf ());
+    cerr_logfile.open (filename, mode);
+    if (!cerr_logfile)
+        std::cerr << "cannot open log file " << filename << ABORT;
+
+    // OK, assume the log is open. flush the buffer to the log
+    std::cerr.flush ();
+    cerr_logfile << cerr_buffer.str ();
+    cerr_buffer.str ("");
+    // redirect cerr to the log file
+    std::cerr.rdbuf (cerr_logfile.rdbuf ());
+}
+
+void dont_redirect_cerr ()
+{
+    // all in vain.
+    std::cerr.flush ();
+    original_cerr_stream << cerr_buffer.str ();
+    cerr_buffer.str ("");
+    // redirect cerr to the log file
+    std::cerr.rdbuf (original_cerr_stream.rdbuf ());
 }
 
 

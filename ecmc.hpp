@@ -1,8 +1,8 @@
-// (c) 2015-2016 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
-#ifndef ECMC_HPP_INCLUDED
-#define ECMC_HPP_INCLUDED
+// Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
+#pragma once
 
 #include "storage.hpp"
+#include <boost/format.hpp>
 
 // each interaction is encoded by a class derived from Interaction.
 // you need to override at least the methods sr_repulsion_range
@@ -107,7 +107,8 @@ struct ChainRunner : AbstractChainRunner
     typedef ENCODING encoding_t;
     typedef Storage <encoding_t> stor_t;
     static const unsigned DIM = encoding_t::DIM;
-    typedef typename stor_t::vector_t vector_t;
+    using vector_t = vector <DIM>;
+    using uivector_t = std::array <uint64_t, DIM>;
     typedef typename stor_t::key_t key_t;
 
     double calib_constant;
@@ -125,12 +126,34 @@ struct ChainRunner : AbstractChainRunner
 #ifdef XDISP_HISTO
     double planned_rsq_event;
 #endif
-    std::array <double, MAX_DIM> reported_probe_rate;
+    vector_t reported_probe_rate;
+    vector_t target_epc, target_tdisppc;
+
+    // cumulative statistics
+    uint64_t walltime;
+    vector_t cumulative_disp, cumulative_xdisp;
+    uivector_t all_events, longrange_events, chainend_events;
+    uint64_t longrange_predicts, shortrange_predicts;
+#ifdef XDISP_HISTO
+    Histogram xdisp_histo;
+    Histogram disp_histo;
+    Histogram log_revent_histo;
+    Histogram revent_histo;
+#endif
 
     ChainRunner ()
+#ifdef XDISP_HISTO
+        : xdisp_histo (.02, -10., 40.)
+        , disp_histo (.001, 0., 3.)
+        , log_revent_histo (.02, -5., 40.)
+        , revent_histo (.02, 0., 8.)
+#endif
     {
         calib_constant = 1.;
         reported_probe_rate.fill (-1.);
+        target_epc.fill (1.);
+        target_tdisppc.fill (1.);
+        reset_statistics ();
     }
 
     static
@@ -150,7 +173,96 @@ struct ChainRunner : AbstractChainRunner
     void set_parameter (string_ref name, double value)
     {
         inter.set_parameter (name, value);
-        AbstractChainRunner::set_parameter (name, value);
+    }
+
+    virtual
+    void reset_statistics ()
+    {
+        walltime = 0;
+        all_events.fill (0);
+        longrange_events.fill (0);
+        chainend_events.fill (0);
+        longrange_predicts = shortrange_predicts = 0;
+        cumulative_disp.fill (0.);
+        cumulative_xdisp.fill (0.);
+    }
+
+    static
+    uint64_t sum_uivector (const uivector_t &v)
+    {
+        uint64_t ret = v[0];
+        for (size_t i = 1; i != v.size (); ++i)
+            ret += v[i];
+        return ret;
+    }
+
+    virtual
+    void dump_statistics (std::ostream &os)
+    {
+        using boost::format;
+
+        // some of these are physics data, so increase precision
+        os.precision (15);
+        // dump performance metrics
+        uint64_t num_events = sum_uivector (all_events);
+        os
+            << "# new-style logfile -- episode dump\n"
+            << "perfstat walltime "
+            << walltime*1e-6 << " seconds\n"
+            << "perfstat num_events "
+            << num_events << "\n"
+            << "perfstat events_per_hour "
+            << format ("%.3e\n") % (3600. * num_events / walltime * 1e6)
+            << "perfstat ratio_lr_events "
+            << fdivide (sum_uivector (longrange_events), num_events) << "\n"
+            << "perfstat predicts_per_event "
+            << fdivide (shortrange_predicts, num_events) << " sr "
+            << fdivide (longrange_predicts, num_events) << " lr\n";
+
+        // EC dynamics
+        os
+            << "ecstat cumulative_disp "
+            << cumulative_disp << "\n"
+            << "ecstat cumulative_xdisp "
+            << cumulative_xdisp << "\n"
+            << "ecstat mean_free_path "
+            << elementwise_fdivide (cumulative_disp, all_events) << "\n"
+            << "ecstat mean_xdisp "
+            << elementwise_fdivide (cumulative_xdisp, all_events) << "\n"
+            << "ecstat mean_events_per_chain "
+            << elementwise_fdivide (all_events, chainend_events) << "\n"
+            << "ecstat scaled_mean_events_per_chain "
+            << elementwise_fdivide (all_events,
+                elementwise_product (chainend_events, target_epc)) << "\n"
+            << "ecstat mean_tdisp_per_chain "
+            << elementwise_fdivide (cumulative_disp + cumulative_xdisp, chainend_events) << "\n"
+            << "ecstat scaled_mean_tdisp_per_chain "
+            << elementwise_fdivide (cumulative_disp + cumulative_xdisp,
+                elementwise_product (chainend_events, target_tdisppc)) << "\n";
+
+        // compressibility factor: beta pressure / rho
+        if (!inter.poison_xdisp_pressure ())
+        {
+            os
+                << "compressib_factor instantaneous "
+                << elementwise_fdivide (cumulative_disp + cumulative_xdisp, cumulative_disp) << "\n";
+        }
+
+        // zero
+        os << "# new-style logfile -- clearing counters\n";
+        reset_statistics ();
+    }
+
+    virtual
+    void save_histograms (string_ref prefix)
+    {
+#ifdef XDISP_HISTO
+        xdisp_histo.savetxt (prefix + "xdisp.histo");
+        disp_histo.savetxt (prefix + "disp.histo");
+        revent_histo.savetxt (prefix + "revent.histo");
+#else
+        (void)prefix;
+#endif
     }
 
     uint64_t time_for_collisions (stor_t *stor, double sr_lr_split, int num_samples)
@@ -209,6 +321,17 @@ struct ChainRunner : AbstractChainRunner
         set_parameter ("sr_lr_split", try_splits[best_split_so_far]);
     }
 
+    static
+    vector_t trunc_periods (stor_t *stor)
+    {
+        vector_t ret;
+        for (size_t n = 0; n != DIM; ++n)
+            ret[n] = stor->period (n);
+        for (size_t n = DIM; n != MAX_DIM; ++n)
+            assert (stor->period (n) == 0.);
+        return ret;
+    }
+
     virtual
     void calibrate (AbstractStorage *stor_)
     {
@@ -216,14 +339,19 @@ struct ChainRunner : AbstractChainRunner
         double chexp = measure_chain_expansion (stor, 0);
         double Lmax = stor->periods ().max ();
         calib_constant = Lmax / chexp / 2;
+
+        target_epc = factor_quantity (stor->num_particles (), trunc_periods (stor));
+        target_tdisppc = trunc_periods (stor);
     }
 
     virtual
-    void do_collide (AbstractStorage *stor_, double disp_per_particle)
+    void collide (AbstractStorage *stor_, double disp_per_particle)
     {
+        walltime -= gclock ();
         stor_t *stor = downcast (stor_);
         unsigned num_chains = 1 + stor->num_particles () * disp_per_particle / calib_constant;
         this->run (stor, num_chains, calib_constant);
+        walltime += gclock ();
     }
 
     // norm-squared, skipping the component 'skip'
@@ -379,7 +507,6 @@ struct ChainRunner : AbstractChainRunner
                 }
 
                 double paccept = qevent/qselect;
-                probe_paccept.add (paccept);
                 if (random.real () < paccept)
                 {
                     // LR event
@@ -424,15 +551,15 @@ struct ChainRunner : AbstractChainRunner
                 if (find_lr_events (stor))
                 {
                     // there can be no events preempting a LR event
-                    ++longrange_lifts;
+                    ++longrange_events[direction];
                     goto handle_event;
                 }
 
                 if (active != planned_next)
                 {
                 handle_event:
-                    ++total_lifts;
-                    total_xdisp += planned_xdisp;
+                    ++all_events[direction];
+                    cumulative_xdisp[direction] += planned_xdisp;
 #ifdef XDISP_HISTO
                     xdisp_histo.add (planned_xdisp);
                     disp_histo.add (saved_disp + planned_disp);
@@ -454,15 +581,13 @@ struct ChainRunner : AbstractChainRunner
             }
 
             // end-of-chain event
-            ++total_lifts;
-            ++total_chains;
+            ++all_events[direction];
+            cumulative_disp[direction] += chain_disp;
+            ++chainend_events[direction];
 #ifdef XDISP_HISTO
             disp_histo.add (saved_disp);
 #endif
         }
-
-        report_xdisp_pressure &= !inter.poison_xdisp_pressure ();
-        total_disp += num_chains * chain_disp;
     }
 
     double measure_chain_expansion (stor_t *stor, unsigned direction_, unsigned num_samples = 100)
@@ -594,5 +719,3 @@ set format "%L"; set log xy; hypot (x,y) = sqrt (x*x+y*y); p "pt.out" index 4 u 
         }
     }
 };
-
-#endif /* ECMC_HPP_INCLUDED */

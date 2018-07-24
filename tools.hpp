@@ -66,8 +66,13 @@ void rt_error (string_ref msg) __attribute__((noreturn));
 struct AbortObject { AbortObject () {} } const ABORT;
 std::ostream &operator<< (std::ostream &, const AbortObject &) __attribute__((noreturn));
 
-// redirect std::cout to a file
-void redirect_cout (string_ref filename, bool append);
+// machinery to redirect std::cerr to a logfile.
+// no error checking against misuse is done.
+// call this in the beginning
+void buffer_cerr ();
+// and one of these once you know whether you want to redirect
+void redirect_cerr (string_ref filename, bool append);
+void dont_redirect_cerr ();
 
 template <typename TYPE>
 TYPE read_arg (const char **argv);
@@ -84,6 +89,16 @@ inline
 double fdivide (double x, double y)
 {
     return x / y;
+}
+
+template <typename TYPE, size_t DIM, typename VEC2>
+auto elementwise_fdivide (const std::array <TYPE, DIM> &lhs, const VEC2 &rhs)
+    -> std::array <double, DIM>
+{
+    std::array <double, DIM> ret;
+    for (size_t n = 0; n != DIM; ++n)
+        ret[n] = double (lhs[n]) / double (rhs[n]);
+    return ret;
 }
 
 inline
@@ -112,6 +127,18 @@ double fproduct (ITERATOR begin, const ITERATOR &end)
     while (begin != end)
         prod *= *begin++;
     return prod;
+}
+
+template <size_t DIM>
+// return a vector q1...qDIM such that
+// (1) alpha = q1:p1 = q2:p2 = ... = qDIM:pDIM
+// and
+// (2) q1 * q2 * ... * qDIM = q.
+vector <DIM> factor_quantity (double q, const vector <DIM> &p)
+{
+    double volume = fproduct (p.begin (), p.begin () + DIM);
+    double alpha = pow (q / volume, 1./DIM);
+    return alpha * p;
 }
 
 inline
@@ -292,8 +319,14 @@ class Extrema
 public:
     Extrema ()
     {
+        reset ();
+    }
+
+    void reset ()
+    {
         min_ = std::numeric_limits <TYPE>::max ();
         max_ = std::numeric_limits <TYPE>::lowest ();
+        num_sampl_ = 0;
     }
 
     const TYPE &min () const { return min_; }

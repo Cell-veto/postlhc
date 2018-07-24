@@ -14,6 +14,7 @@ string format_out (string_ref prefix, unsigned snap, string_ref type = "coords")
 
 int main (int, const char **argv)
 {
+    buffer_cerr ();
     AbstractStorage *stor = 0;
     AbstractChainRunner *cr = 0;
     AbstractCorrelator *gofr = 0;
@@ -126,6 +127,7 @@ int main (int, const char **argv)
             // unrecognized argument -- assume it's an interaction parameter
             double value = read_arg <double> (argv);
             prefix += boost::str (format ("%s%f/") % kw % value);
+            std::cerr << "inter_param " << kw << " " << value << "\n";
             cr->set_parameter (kw, value);
         }
     }
@@ -142,10 +144,12 @@ int main (int, const char **argv)
 
     prefix += boost::str (format ("seed%lu_") % random_seed);
 
-    // redirect std::cout to logfile
+    // redirect std::cerr to logfile
     // (append if recovering)
     if (redirect_log)
-        redirect_cout (prefix + "log", recover);
+        redirect_cerr (prefix + "log", recover);
+    else
+        dont_redirect_cerr ();
 
     std::cerr << "hostname " << hostname () << '\n';
 
@@ -210,7 +214,7 @@ int main (int, const char **argv)
         }
     }
     stor->add_data (in_filename);
-    stor->dump_report (std::cerr);
+    stor->dump_statistics (std::cerr);
 
     if (write_gofr)
         gofr = make_correlator ("density", stor, 0.01, 0.);
@@ -242,7 +246,8 @@ int main (int, const char **argv)
     }
 
     // warm-up
-    cr->collide (stor, 10.);
+    cr->collide (stor, 1.);
+    cr->dump_statistics (std::cerr);
     unsigned jmany = 1, gofr_samples = 1;
     for (; snap != snap_target; ++snap)
     {
@@ -253,13 +258,9 @@ int main (int, const char **argv)
             if (gofr) gofr->sample (stor, gofr_samples);
         }
 
-        stor->dump_report (std::cerr);
-        cr->dump_report (std::cerr);
-#ifdef XDISP_HISTO
-        cr->xdisp_histo.savetxt (prefix + "xdisp.histo");
-        cr->disp_histo.savetxt (prefix + "disp.histo");
-        cr->revent_histo.savetxt (prefix + "revent.histo");
-#endif
+        stor->dump_statistics (std::cerr);
+        cr->dump_statistics (std::cerr);
+        cr->save_histograms (prefix);
         if (gofr) gofr->savetxt (format_out (prefix, snap, "gofr"));
         stor->save_data (format_out (prefix, snap));
 

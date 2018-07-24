@@ -23,7 +23,6 @@ MAKEFILES = \
 SOURCES = \
     $(INTERACTIONS) \
     storage.cpp \
-    chainrunner.cpp \
     io.cpp \
     paircorrel.cpp \
     tools.cpp \

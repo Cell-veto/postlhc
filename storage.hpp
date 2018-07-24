@@ -1,6 +1,5 @@
-// (c) 2015-2016 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
-#ifndef STORAGE_HPP_INCLUDED
-#define STORAGE_HPP_INCLUDED
+// (c) 2015-2018 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
+#pragma once
 
 #include "tools.hpp"
 
@@ -70,7 +69,7 @@ struct AbstractParticleSink
 struct AbstractStorage : AbstractParticleSink, FactoryProduct <AbstractStorage>
 {
     virtual ~AbstractStorage () {}
-    virtual void dump_report (std::ostream &) const = 0;
+    virtual void dump_statistics (std::ostream &) = 0;
 
     virtual unsigned dimension () const = 0;
     virtual Periods periods () const = 0;
@@ -470,7 +469,7 @@ public:
     }
 
     virtual
-    void dump_report (std::ostream &os) const
+    void dump_statistics (std::ostream &os)
     {
         os << "fillfrac " << fdivide (num_, num_cells_) << "\n";
 
@@ -850,35 +849,16 @@ private:
 
 struct AbstractChainRunner : FactoryProduct <AbstractChainRunner>
 {
-    AbstractChainRunner ();
-
-    // cumulative statistics
-    uint64_t walltime;
-    uint64_t total_lifts, longrange_lifts, total_chains;
-    uint64_t longrange_predicts, shortrange_predicts;
-    double total_disp, total_xdisp;
-#ifdef XDISP_HISTO
-    Histogram xdisp_histo;
-    Histogram disp_histo;
-    Histogram log_revent_histo;
-    Histogram revent_histo;
-#endif
-    Extrema <double> probe_paccept;
-    bool report_xdisp_pressure;
-
-    // virtual interface
     virtual ~AbstractChainRunner () {}
     virtual void seed_random (unsigned) = 0;
-    virtual void set_parameter (string_ref name, double value);
-    virtual void reset_statistics ();
-    virtual void dump_report (std::ostream &) const;
+    virtual void set_parameter (string_ref name, double value) = 0;
+    virtual void reset_statistics () {}
+    virtual void dump_statistics (std::ostream &) {}
+    virtual void save_histograms (string_ref /* prefix */) {}
     virtual void optimize_sr_lr_split (AbstractStorage *) = 0;
     virtual void calibrate (AbstractStorage *) = 0;
-            void collide (AbstractStorage *, double disp_per_particle);
+    virtual void collide (AbstractStorage *, double disp_per_particle) = 0;
     virtual void probe_test_pattern (AbstractStorage *, unsigned direction = 0) = 0;
-protected:
-    mutable std::map <string, double> inter_params_;
-    virtual void do_collide (AbstractStorage *, double disp_per_particle) = 0;
 };
 
 struct AbstractCorrelator : FactoryProduct <AbstractCorrelator>
@@ -896,5 +876,3 @@ AbstractCorrelator *make_correlator (string_ref attribute, AbstractStorage *stor
     double bin_width, double rmax);
 void add_data (AbstractParticleSink *, string_ref filename);
 void save_data (string_ref filename, AbstractStorage *);
-
-#endif /* STORAGE_HPP_INCLUDED */

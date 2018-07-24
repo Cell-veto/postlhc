@@ -25,3 +25,9 @@ AbstractStorage *make_storage (string_ref encoding_typecode)
 static Register <Storage <Monodisperse2D>> one ("mono2d");
 static Register <Storage <Tagged <Monodisperse2D>>> three ("tagged_mono2d");
 static Register <Storage <Monodisperse3D>> two ("mono3d");
+
+AbstractChainRunner *make_chainrunner (string_ref interaction_type, AbstractStorage *stor)
+{
+    return Factory <AbstractChainRunner>::make (
+        interaction_type + "/" + stor->typecode ());
+}
