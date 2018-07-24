@@ -74,9 +74,17 @@ TYPE read_arg (const char **argv);
 
 
 // float utilities
-
+using std::fmax;
+using std::fmin;
 using std::pow;
 using std::sqrt;
+
+// shorthand: cast to float and divide
+inline
+double fdivide (double x, double y)
+{
+    return x / y;
+}
 
 inline
 double sq (double x)
@@ -84,38 +92,17 @@ double sq (double x)
     return x*x;
 }
 
+// new name, same thing
 inline
-double fdivide (double x, double y)
+double fsq (double x)
 {
-    return x / y;
-}
-
-// misc small utilities
-// FIXME these have namesakes in std:: which do THE OPPOSITE
-// (swallow NaN silently)
-
-inline
-double fmin (double a, double b)
-{
-    if (a < b)
-        return a;
-    // NAN propagation
-    return a==a ? b : a;
+    return x*x;
 }
 
 inline
 double fmin (double a, double b, double c)
 {
     return fmin (a, fmin (b, c));
-}
-
-inline
-double fmax (double a, double b)
-{
-    if (a > b)
-        return a;
-    // NAN propagation
-    return a==a ? b : a;
 }
 
 template <typename ITERATOR>
