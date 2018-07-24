@@ -328,6 +328,13 @@ def compute (what):
         return MT
     elif what == 'rho':
         return np.ones (N)
+    elif what == 'Z':
+        # (Voronoi) coordination number.
+        # Z is an integer, and most outputs don't now what to do with that.
+        # "dat" output works, though.
+        setup_voronoi ()
+        Z = [ len (n) for (n, w) in normals_and_weights (voro) ]
+        return np.asarray (Z)
     elif what == 'voronoi_volume':
         # obserable pinned to each particle is the Voronoï cell volume.
         setup_voronoi ()
@@ -373,6 +380,8 @@ if __name__ == "__main__":
             re = np.real (order[:N])
             im = np.imag (order[:N])
             np.savetxt (dat_out, zip (re, im))
+        elif order.dtype == np.int:
+            np.savetxt (dat_out, order[:N], fmt='%d')
         else:
             np.savetxt (dat_out, order[:N])
 
