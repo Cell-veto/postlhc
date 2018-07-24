@@ -95,6 +95,22 @@ def normals_and_weights (diagr, relev = None):
         w /= np.sum (w)
         yield (n, w)
 
+def polygon_area (x,y):
+    # https://stackoverflow.com/a/30408825
+    return 0.5 * np.abs (np.dot (x, np.roll (y,1)) - np.dot (y, np.roll (x,1)))
+
+def areas (diagr, relev = None):
+    """compute areas Voronoï diagram"""
+    # represent vertices by complex numbers
+    vert = diagr.vertices[:,0] + 1.j*diagr.vertices[:,1]
+    # unless cutoff is specified, return data for all points
+    if not relev:
+        relev = len (diagr.points)
+    for i in xrange (relev):
+        reg = diagr.regions[diagr.point_region[i]]
+        pnt = vert[reg]
+        yield polygon_area (pnt.real, pnt.imag)
+
 def pad_points (coords, periods, overlap):
     """ add periodic padding to point set """
     imax = int (overlap/periods[0]) + 1
@@ -298,6 +314,9 @@ def grid_and_save_field_png (filename, values, resolu):
 
     values = np.array (values)
 
+    assert len (dataX) == len (values)
+    assert len (dataY) == len (values)
+
     if values.dtype == np.complex128:
         # griddata doesn't do complex
         gridded = togrid (np.real (values)) + 1j * togrid (np.imag (values))
@@ -315,6 +334,16 @@ def compute (what):
         return MT
     elif what == 'rho':
         return np.ones (N)
+    elif what == 'voronoi_volume':
+        # obserable pinned to each particle is the Voronoï cell volume.
+        setup_voronoi ()
+        return np.array ([ a for a in areas (voro) ])
+    elif what == 'voronoi_density':
+        # obserable pinned to each particle is the local density, defined as
+        # 1/Vc where Vc is the Voronoï cell volume.
+        setup_voronoi ()
+        A = np.array ([ a for a in areas (voro) ])
+        return A**-1
     else:
         die ('unknown order parameter: %s' % what)
 
@@ -359,6 +388,7 @@ if __name__ == "__main__":
         grid_and_save_field_png (png_out, order, resolu)
 
     # output for gnuplot or rdisk
+    # FIXME this doesn't know what to do with real (as opposed to complex) data
     if gnuplot_out != '':
         colors = complex_number_to_gnuplot (order)
         outfile = open (gnuplot_out, 'w')
