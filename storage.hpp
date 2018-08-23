@@ -174,7 +174,6 @@ struct CellStorage : AbstractStorage
     // return number of cells along direction n.
     // if n==DIM, report storage capacity of cells.
     virtual size_t cell_count (unsigned n) const = 0;
-    virtual void reduce_cell_width (double max_cell_width) = 0;
 };
 
 template <typename ENCODING>
@@ -185,13 +184,6 @@ public:
     typedef ENCODING CellData;
     static const unsigned DIM = ENCODING::DIM;
     typedef vector <DIM> vector_t;
-
-    virtual
-    void reduce_cell_width (double target)
-    {
-        while (cell_width (0) > target || cell_width (1) > target)
-            subdivide ();
-    }
 
     virtual
     size_t cell_count (unsigned n) const

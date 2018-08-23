@@ -25,7 +25,6 @@ int main (int, const char **argv)
     bool recover = false;
     bool redirect_log = false;
     bool write_gofr = false;
-    double max_cell_width = -1.;
     double snap_disp = 100;
     unsigned long random_seed = 42;
     unsigned long snap_target = 100000;
@@ -81,10 +80,6 @@ int main (int, const char **argv)
         {
             skip_calib = true;
             --argv; // no argument
-        }
-        else if (kw == "hack_limit_cellwidth")
-        {
-            max_cell_width = read_arg <double> (argv);
         }
         else if (kw == "probe_test")
         {
@@ -229,13 +224,6 @@ int main (int, const char **argv)
     // init chainrunner
     std::cerr << "inter " << inter << '\n';
     cr->seed_random (random_seed);
-
-    // hack to measure reliable probe rates
-    if (max_cell_width > 0.)
-    {
-        auto cell_stor = dynamic_cast <CellStorage *> (stor);
-        cell_stor->reduce_cell_width (max_cell_width);
-    }
 
     if (probe_test)
     {
