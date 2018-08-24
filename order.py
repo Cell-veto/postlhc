@@ -70,6 +70,13 @@ def load_periods (filename):
 def load_coords (filename):
     """ load a coords.dat file """
     try:
+        import pandas
+        data = pandas.read_csv (filename, sep=' ')
+        return data[:,:2]
+    except:
+        # maybe we don't have pandas. try again with plain numpy.
+        pass
+    try:
         data = np.loadtxt (filename)
     except:
         print >>sys.stderr, 'error loading %s (pwd = %s)' % (filename, os.getcwd ())
