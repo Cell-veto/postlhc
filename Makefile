@@ -1,6 +1,5 @@
 CXXFLAGS += -std=c++11 -g -Wall -Wextra
 EXTRA_CXXFLAGS += -DNDEBUG -O3
-GSL_LDFLAGS =
 
 -include features.mk
 
@@ -50,7 +49,7 @@ dep: $(OBJECTS) $(MAKEFILES)
 -include .depend
 
 postlhc: main.o $(OBJECTS)
-	$(CXX) $(LDFLAGS) -o $@ $< $(OBJECTS) $(GSL_LDFLAGS)
+	$(CXX) $(LDFLAGS) -o $@ $< $(OBJECTS)
 
 clean:
 	rm -f $(BINARIES) $(OBJECTS) $(MAIN_OBJECTS) .depend
