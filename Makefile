@@ -1,32 +1,34 @@
 CXXFLAGS += -std=c++11 -g -Wall -Wextra
-EXTRA_CXXFLAGS += -DNDEBUG -O3
+LDFLAGS = -static
+EXTRA_CXXFLAGS = -DNDEBUG -O3
+EXTRA_LDFLAGS =
+INTERACTIONS = \
+    jellium3.cpp \
+    jellium4.cpp \
+    ipl.cpp \
+    lj.cpp \
+    ljg.cpp \
+    harddisk.cpp \
 
+# override stuff here
 -include features.mk
 
 CXXFLAGS += $(EXTRA_CXXFLAGS)
+LDFLAGS += $(EXTRA_LDFLAGS)
 
 MAKEFILES = \
     Makefile \
     features.mk \
 
 SOURCES = \
+    $(INTERACTIONS) \
     storage.cpp \
     chainrunner.cpp \
-    ipl.cpp \
-    lj.cpp \
-    ljg.cpp \
-    harddisk.cpp \
     io.cpp \
     paircorrel.cpp \
     tools.cpp \
-    jellium3.cpp \
-    jellium4.cpp \
-
-MAIN_SOURCES = \
-    main.cpp \
 
 OBJECTS = $(SOURCES:%.cpp=%.o)
-MAIN_OBJECTS = $(MAIN_SOURCES:%.cpp=%.o)
 
 BINARIES = \
     postlhc \
@@ -52,6 +54,6 @@ postlhc: main.o $(OBJECTS)
 	$(CXX) $(LDFLAGS) -o $@ $< $(OBJECTS)
 
 clean:
-	rm -f $(BINARIES) $(OBJECTS) $(MAIN_OBJECTS) .depend
+	rm -f $(BINARIES) *.o .depend
 
 .PHONY: all clean dep
