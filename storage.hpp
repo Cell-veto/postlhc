@@ -200,6 +200,7 @@ private:
 
     unsigned nextsub_;
     unsigned bc_[DIM+1];
+    unsigned planes_in_use_;
     Periods peri_;
     double real2frac[DIM], frac2real[DIM];
 
@@ -260,10 +261,15 @@ private:
     key_t find_spot (key_t base_key)
     {
         key_t k = base_key;
-        key_t k_end = base_key + cell_count (DIM);
+        key_t k_end = base_key + planes_in_use_;
         for (; k != k_end; ++k)
             if (!data_[k].in_use ())
                 return k;
+        if (k < base_key + cell_count (DIM))
+        {
+            ++planes_in_use_;
+            return k;
+        }
         throw StorageFull ();
     }
 
@@ -294,6 +300,7 @@ private:
 
         // init new cells
         std::memset (data_, 0, num_cells_ * sizeof (CellData));
+        planes_in_use_ = 0;
         // restore particles
         for (size_t n = 0; n != backup.size (); ++n)
             put_encoded (backup[n]); // cannot throw
@@ -480,7 +487,7 @@ public:
         os << "cell_occup";
         for (size_t occ : occ_hist)
             os << ' ' << fdivide (occ, num_cells_/max_occup);
-        os << '\n';
+        os << "\nplanes_in_use " << planes_in_use_ << "\n";
     }
 
     void put (const MostGeneralParticle &part) override
@@ -784,7 +791,7 @@ public:
         void next_cell () final
         {
             ++k_;
-            if (++position_[DIM] < stor_->cell_count (DIM))
+            if (++position_[DIM] < stor_->planes_in_use_)
                 return;
             position_[DIM] = 0;
 
