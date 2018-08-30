@@ -1,6 +1,8 @@
-// (c) 2015-2016 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
-#ifndef IPL_HPP_INCLUDED
-#define IPL_HPP_INCLUDED
+// inverse-power-law interaction.
+// (c) 2015-2018 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
+#pragma once
+
+#include "ecmc.hpp" // for Interaction
 
 // U = stren / exponent / r**exponent
 // note that the parameter 'strength' for historical reasons sets the
@@ -164,5 +166,3 @@ struct JelliumInteraction : PowerLawInteraction
         return true;
     }
 };
-
-#endif /* IPL_HPP_INCLUDED */
