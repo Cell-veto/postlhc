@@ -16,6 +16,8 @@
 #include "vector.hpp"
 #include "ts.mk.hpp"
 
+#define RANDOM_EXPONENTIAL_BUFFER_SIZE 64
+
 using std::string;
 typedef const string &string_ref;
 
@@ -248,9 +250,9 @@ struct MersenneTwister : std::mt19937_64
 {
 };
 
-class RandomContext
+struct RandomContext
 {
-public:
+    RandomContext ();
     void seed (unsigned);
     void seed_from (RandomContext *);
     double real (/* 0., 1. */);
@@ -273,7 +275,25 @@ public:
 
 private:
     MersenneTwister e_;
+#if RANDOM_EXPONENTIAL_BUFFER_SIZE != 0
+    void refill_exp_buffer_ ();
+    double exp_buffer_[RANDOM_EXPONENTIAL_BUFFER_SIZE];
+    unsigned num_exp_used_;
+#endif
 };
+
+inline
+double RandomContext::exponential (double scale)
+{
+    assert (scale > 0.);
+#if RANDOM_EXPONENTIAL_BUFFER_SIZE != 0
+    if (num_exp_used_ == RANDOM_EXPONENTIAL_BUFFER_SIZE)
+        refill_exp_buffer_ ();
+    return exp_buffer_[num_exp_used_++] / scale;
+#else
+    return exponential () / scale;
+#endif
+}
 
 class Histogram
 {

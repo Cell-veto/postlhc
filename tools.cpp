@@ -199,6 +199,13 @@ double read_arg (const char **argv)
 
 // RandomContext
 
+RandomContext::RandomContext ()
+{
+#if RANDOM_EXPONENTIAL_BUFFER_SIZE != 0
+    num_exp_used_ = RANDOM_EXPONENTIAL_BUFFER_SIZE;
+#endif
+}
+
 void RandomContext::seed (unsigned seed)
 {
     e_.seed (seed);
@@ -236,11 +243,16 @@ double RandomContext::exponential ()
     return -std::log (1-real ());
 }
 
-double RandomContext::exponential (double scale)
+#if RANDOM_EXPONENTIAL_BUFFER_SIZE != 0
+void RandomContext::refill_exp_buffer_ ()
 {
-    assert (scale > 0.);
-    return exponential () / scale;
+    for (int i = 0; i != RANDOM_EXPONENTIAL_BUFFER_SIZE; ++i)
+        exp_buffer_[i] = real ();
+    for (int i = 0; i != RANDOM_EXPONENTIAL_BUFFER_SIZE; ++i)
+        exp_buffer_[i] = -std::log (1-exp_buffer_[i]);
+    num_exp_used_ = 0;
 }
+#endif
 
 double RandomContext::pareto (double paralpha, double minimum)
 {
