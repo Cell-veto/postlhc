@@ -243,6 +243,11 @@ public:
 
 // random numbers
 
+// hack to make profiles more readable.
+struct MersenneTwister : std::mt19937_64
+{
+};
+
 class RandomContext
 {
 public:
@@ -267,7 +272,7 @@ public:
     vector <DIM> fromshell (double rmin, double rmax);
 
 private:
-    std::mt19937_64 e_;
+    MersenneTwister e_;
 };
 
 class Histogram
