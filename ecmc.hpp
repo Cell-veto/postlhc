@@ -405,9 +405,13 @@ struct ChainRunner : AbstractChainRunner
             {
                 double rsq = ortho_rsq + xsq;
                 double delta = inter.random_sr_repulsion (rsq, &random);
-                assert (delta <= 0.);
-                // delta <= -rsq signals 'no event' (will not enter the next if clause)
 
+                if (! (delta <= 0.))
+                {
+                    std::cerr << "computed short-range repulsive event is not in the future" << ABORT;
+                }
+
+                // delta <= -rsq signals 'no event' (will not enter the next if clause)
                 if (xsq + delta > 0.)
                 {
                     disp = -delta / (sqrt (xsq + delta) + x_now);
@@ -426,7 +430,11 @@ struct ChainRunner : AbstractChainRunner
                 double xsq_virt = sq (x_virt);
                 double rsq_virt = ortho_rsq + xsq_virt;
                 double delta = inter.random_sr_attraction (rsq_virt, &random);
-                assert (delta >= 0.);
+                if (! (delta >= 0.))
+                {
+                    std::cerr << "computed short-range attractive event is not in the future" << ABORT;
+                }
+
                 disp = (x_now-x_virt) + delta / (sqrt (xsq_virt + delta) - x_virt);
                 goto have_event;
             }
@@ -436,12 +444,6 @@ struct ChainRunner : AbstractChainRunner
 
         have_event:
             // when jumping here, disp will have been initialized.
-            // enter new event into bookkeeping
-            if (! (disp >= 0.))
-            {
-                std::cerr << "computed event is not in the future" << ABORT;
-            }
-
             // see if this event preempts the previous one
             if (disp < planned_disp)
             {
