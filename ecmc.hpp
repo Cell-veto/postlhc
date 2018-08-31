@@ -389,6 +389,8 @@ struct ChainRunner : AbstractChainRunner
             -attract_range, planned_disp + strip_width);
         for (; g.not_done (); g.next ())
         {
+            ++shortrange_predicts;
+
             vector_t r_now = stor->distance_vector (g.key (), active);
             double x_now = r_now[direction];
             double xsq = sq (x_now);
@@ -435,8 +437,6 @@ struct ChainRunner : AbstractChainRunner
         have_event:
             // when jumping here, disp will have been initialized.
             // enter new event into bookkeeping
-            ++shortrange_predicts;
-
             if (! (disp >= 0.))
             {
                 std::cerr << "computed event is not in the future" << ABORT;
