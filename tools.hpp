@@ -237,7 +237,7 @@ public:
         // base constructor registers the factory
     }
 
-    virtual abstract_t *make ()
+    abstract_t *make () final
     {
         return new CONCRETE;
     }

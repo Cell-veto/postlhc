@@ -184,8 +184,7 @@ public:
     static const unsigned DIM = ENCODING::DIM;
     typedef vector <DIM> vector_t;
 
-    virtual
-    size_t cell_count (unsigned n) const
+    size_t cell_count (unsigned n) const override
     {
         assert (n <= DIM);
         return 1ull << bc_[n];
@@ -389,8 +388,7 @@ public:
         subdivide (true);
     }
 
-    virtual
-    unsigned dimension () const
+    unsigned dimension () const override
     {
         return DIM;
     }
@@ -400,8 +398,7 @@ public:
         return num_cells_;
     }
 
-    virtual
-    size_t num_particles () const
+    size_t num_particles () const override
     {
         return num_;
     }
@@ -417,14 +414,12 @@ public:
         return peri_[compo];
     }
 
-    virtual
-    Periods periods () const
+    Periods periods () const override
     {
         return peri_;
     }
 
-    virtual
-    void set_periods (const Periods &periods)
+    void set_periods (const Periods &periods) override
     {
         if (num_particles () != 0)
             rt_error ("don't set_periods with particles");
@@ -468,8 +463,7 @@ public:
         return md * cell_count (DIM);
     }
 
-    virtual
-    void dump_statistics (std::ostream &os)
+    void dump_statistics (std::ostream &os) override
     {
         os << "fillfrac " << fdivide (num_, num_cells_) << "\n";
 
@@ -489,8 +483,7 @@ public:
         os << '\n';
     }
 
-    virtual
-    void put (const MostGeneralParticle &part)
+    void put (const MostGeneralParticle &part) override
     {
         (void)insert (part);
     }
@@ -660,7 +653,7 @@ public:
         }
 
         // AbstractParticleGenerator interface
-        virtual bool get (MostGeneralParticle *dst)
+        bool get (MostGeneralParticle *dst) final
         {
             if (not_done ())
             {
@@ -686,8 +679,7 @@ public:
         const this_t *stor_;
     };
 
-    virtual
-    AllNewGenerator *all_particles () const
+    AllNewGenerator *all_particles () const override
     {
         return new AllNewGenerator (*this);
     }
@@ -783,15 +775,13 @@ public:
             hi_bound_[direction_] = new_hi_bound;
         }
 
-        virtual
-        bool not_done ()
+        bool not_done () override
         {
             return position_[direction_] != hi_bound_[direction_];
         }
 
     private:
-        virtual
-        void next_cell ()
+        void next_cell () override
         {
             ++k_;
             if (++position_[DIM] < stor_->cell_count (DIM))
@@ -831,13 +821,13 @@ public:
             GeneratorBase::init (0);
         }
 
-        virtual bool not_done ()
+        bool not_done () override
         {
             return k_ != stor_->num_cells ();
         }
 
     private:
-        virtual void next_cell ()
+        void next_cell () override
         {
             ++k_;
         }
