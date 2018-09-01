@@ -775,13 +775,13 @@ public:
             hi_bound_[direction_] = new_hi_bound;
         }
 
-        bool not_done () override
+        bool not_done () final
         {
             return position_[direction_] != hi_bound_[direction_];
         }
 
     private:
-        void next_cell () override
+        void next_cell () final
         {
             ++k_;
             if (++position_[DIM] < stor_->cell_count (DIM))
@@ -821,13 +821,13 @@ public:
             GeneratorBase::init (0);
         }
 
-        bool not_done () override
+        bool not_done () final
         {
             return k_ != stor_->num_cells ();
         }
 
     private:
-        void next_cell () override
+        void next_cell () final
         {
             ++k_;
         }
