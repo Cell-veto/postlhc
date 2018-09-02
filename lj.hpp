@@ -1,7 +1,6 @@
 // (c) 2015-2018 Sebastian Kapfer <sebastian.kapfer@fau.de>, FAU Erlangen
 // LJ interactions.
-#ifndef LENNARD_JONES_INCLUDED 
-#define LENNARD_JONES_INCLUDED 
+#pragma once
     
 #include "ecmc.hpp"
 #include "pareto_prober.hpp"
@@ -50,7 +49,7 @@ struct LennardJones : Interaction
     double sr_lr_split, scale, cutoff;
     double rep_cutoff, attr_cutoff, lj_at_cutoff, probe_prefactor;
 
-    void set_parameter (string name, double value)
+    void set_parameter (string_ref name, double value)
     {
         if (! (value > 0.))
             rt_error ("Invalid " + name + " value");
@@ -185,5 +184,3 @@ struct LennardJones : Interaction
         return probe_prefactor * prober.random_probe (ret, random);
     }
 };
-
-#endif /* LENNARD_JONES_INCLUDED */
