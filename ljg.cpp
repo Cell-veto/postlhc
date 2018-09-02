@@ -30,7 +30,7 @@ struct LennardJonesGauss : Interaction
     double pref_g;
     double g_at_cutoff, g_at_origin, lj_at_cutoff;
 
-    void set_parameter (string name, double value)
+    void set_parameter (string_ref name, double value)
     {
         if (! (value > 0.))
             rt_error ("Invalid " + name + " value");
