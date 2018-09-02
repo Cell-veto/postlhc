@@ -38,6 +38,12 @@ struct IPL : PowerLawInteraction
         }
     }
 
+    void set_parameter (string_ref name, double value)
+    {
+        prober.error_bound = -1.;
+        PowerLawInteraction::set_parameter (name, value);
+    }
+
     double total_probe_rate (unsigned /* direction */) const
     {
         return stren * prober.total_probe_rate ();
