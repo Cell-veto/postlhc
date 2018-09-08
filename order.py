@@ -337,7 +337,7 @@ def compute (what):
         MT = [ np.dot (np.power (n, angular), w) for (n, w) in normals_and_weights () ]
         return np.asarray (MT)
     elif what == 'rho':
-        return np.ones_like (padded_coords)
+        return np.ones (N)
     elif what == 'Z':
         # (Voronoi) coordination number.
         # Z is an integer, and most outputs don't now what to do with that.
